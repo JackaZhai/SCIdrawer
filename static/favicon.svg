@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="brainGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6" />
+      <stop offset="100%" stop-color="#6366f1" />
+    </linearGradient>
+  </defs>
+  <circle cx="50" cy="50" r="45" fill="url(#brainGradient)" />
+  <path d="M35,40 Q50,30 65,40 Q70,50 65,60 Q50,70 35,60 Q30,50 35,40" fill="none" stroke="white" stroke-width="4" stroke-linecap="round" />
+  <path d="M45,45 Q50,40 55,45 Q57,50 55,55 Q50,60 45,55 Q43,50 45,45" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" />
+  <path d="M40,35 L45,30 M60,35 L55,30" stroke="white" stroke-width="3" stroke-linecap="round" />
+</svg>

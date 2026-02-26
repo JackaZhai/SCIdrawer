@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python:*)",
+      "Bash(curl:*)",
+      "Bash(taskkill:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(wmic:*)",
+      "Bash(git add:*)",
+      "Bash(git rm:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\n修复登录界面文字不显示问题\n\n- 完全重写 templates/login.html，内联所有CSS样式\n- 强制文字颜色和字体设置，解决CSS优先级冲突\n- 添加密码显示/隐藏功能和表单提交处理\n- 重构项目结构，采用面向对象设计模式\n- 添加项目说明文件 CLAUDE.md\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git push:*)",
+      "Bash(ssh:*)",
+      "Bash(cat:*)",
+      "Bash(timeout:*)",
+      "Bash(chmod:*)",
+      "Bash(./test_ssh.sh:*)",
+      "Bash(sshpass:*)",
+      "Bash(./test_ssh_port.sh:*)",
+      "Bash(ls:*)",
+      "Bash(openssl rand:*)",
+<<<<<<< HEAD
+      "Bash(./deploy.sh:*)",
+      "Bash(./deploy_manual.sh:*)",
+      "Bash(scp:*)"
+=======
+      "Bash(./deploy/deploy.sh:*)",
+      "Bash(./deploy/deploy_manual.sh:*)"
+>>>>>>> fe320293f323176be6f529164dbcbc9b9c135b59
+    ]
+  }
+}

@@ -1,0 +1,67 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Application data
+data/**
+backup/
+*.db
+*.sqlite
+*.sqlite3
+!data/.gitkeep
+
+# Logs
+*.log
+logs/**
+!logs/.gitkeep
+
+# Temporary files
+*.tmp
+*.temp
+
+# Test files
+test-output/
+coverage/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Node / desktop
+electron/node_modules/
+node_modules/
+
+# Build artifacts
+build/
+dist/

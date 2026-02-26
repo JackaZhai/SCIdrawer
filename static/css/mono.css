@@ -1,0 +1,163 @@
+﻿/* ============================================
+   Monochrome Minimal UI Overrides
+   - Black/white minimalist style
+   - Non-destructive: overrides CSS variables + a few components
+   ============================================ */
+
+:root {
+  --color-bg-primary: #0b0b0b;
+  --color-bg-secondary: #101010;
+  --color-bg-tertiary: #141414;
+
+  --color-bg-surface: rgba(255, 255, 255, 0.03);
+  --color-bg-surface-hover: rgba(255, 255, 255, 0.06);
+  --color-bg-surface-active: rgba(255, 255, 255, 0.09);
+  --color-bg-surface-elevated: rgba(255, 255, 255, 0.04);
+  --color-bg-surface-highlight: rgba(255, 255, 255, 0.06);
+  --color-bg-surface-subtle: rgba(255, 255, 255, 0.02);
+
+  --color-text-primary: #f2f2f2;
+  --color-text-secondary: #d6d6d6;
+  --color-text-tertiary: #a6a6a6;
+  --color-text-muted: #7a7a7a;
+
+  --color-border: rgba(255, 255, 255, 0.10);
+  --color-border-hover: rgba(255, 255, 255, 0.16);
+  --color-border-focus: rgba(255, 255, 255, 0.40);
+
+  /* Brand colors collapse to monochrome */
+  --color-primary: #ffffff;
+  --color-primary-hover: #ffffff;
+  --color-primary-active: #ffffff;
+  --color-primary-light: rgba(255, 255, 255, 0.08);
+
+  --color-secondary: #ffffff;
+  --color-secondary-hover: #ffffff;
+  --color-secondary-active: #ffffff;
+
+  --color-accent: #ffffff;
+  --color-accent-hover: #ffffff;
+  --color-accent-active: #ffffff;
+
+  --gradient-primary: none;
+  --gradient-secondary: none;
+  --gradient-accent: none;
+  --gradient-surface: none;
+
+  /* Calm shadows */
+  --shadow-sm: 0 1px 0 rgba(0,0,0,0.25);
+  --shadow-md: 0 6px 18px rgba(0,0,0,0.35);
+  --shadow-lg: 0 12px 30px rgba(0,0,0,0.40);
+  --shadow-xl: 0 20px 40px rgba(0,0,0,0.45);
+  --shadow-glow: none;
+  --shadow-elevated: 0 12px 30px rgba(0,0,0,0.45);
+  --shadow-floating: 0 18px 40px rgba(0,0,0,0.50);
+}
+
+[data-theme="light"] {
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #fafafa;
+  --color-bg-tertiary: #f3f3f3;
+
+  --color-bg-surface: rgba(0, 0, 0, 0.03);
+  --color-bg-surface-hover: rgba(0, 0, 0, 0.05);
+  --color-bg-surface-active: rgba(0, 0, 0, 0.07);
+  --color-bg-surface-elevated: rgba(0, 0, 0, 0.04);
+  --color-bg-surface-highlight: rgba(0, 0, 0, 0.05);
+  --color-bg-surface-subtle: rgba(0, 0, 0, 0.02);
+
+  --color-text-primary: #111111;
+  --color-text-secondary: #2a2a2a;
+  --color-text-tertiary: #555555;
+  --color-text-muted: #777777;
+
+  --color-border: rgba(0, 0, 0, 0.10);
+  --color-border-hover: rgba(0, 0, 0, 0.16);
+  --color-border-focus: rgba(0, 0, 0, 0.35);
+
+  --shadow-sm: 0 1px 0 rgba(0,0,0,0.06);
+  --shadow-md: 0 10px 22px rgba(0,0,0,0.10);
+  --shadow-lg: 0 14px 30px rgba(0,0,0,0.12);
+}
+
+/* Flatten gradients used by layout */
+.sidebar,
+.topbar,
+.brand-logo,
+.nav-item,
+.action-button {
+  background: var(--color-bg-secondary) !important;
+}
+
+.brand-logo {
+  background: #ffffff !important;
+  color: var(--color-bg-primary) !important;
+  box-shadow: none !important;
+}
+
+.brand-logo-image {
+  background: #ffffff !important;
+  filter: none !important;
+}
+
+.brand-title {
+  -webkit-text-fill-color: unset !important;
+  background: none !important;
+  color: var(--color-text-primary) !important;
+}
+
+.sidebar {
+  box-shadow: none !important;
+}
+
+.nav-item {
+  box-shadow: none !important;
+  transform: none !important;
+  border: 1px solid transparent !important;
+}
+
+.nav-item:hover {
+  transform: none !important;
+  border-color: var(--color-border-hover) !important;
+}
+
+.nav-item.active {
+  box-shadow: none !important;
+  border-color: var(--color-border-focus) !important;
+}
+
+.nav-item.active::after {
+  display: none !important;
+}
+
+/* Buttons: remove neon/glow */
+.btn-primary {
+  background: var(--color-text-primary) !important;
+  color: var(--color-bg-primary) !important;
+  box-shadow: none !important;
+}
+
+.btn-primary:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.btn-outline:hover {
+  transform: none !important;
+}
+
+/* Cards: crisp borders */
+.content-card,
+.stat-card {
+  box-shadow: none !important;
+  border: 1px solid var(--color-border) !important;
+}
+
+/* Reduce motion (still keeps page fade) */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+

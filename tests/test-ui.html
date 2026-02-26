@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>a.zhai's ToolBox UI 测试</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="static/css/main.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .test-section {
+            margin-bottom: 3rem;
+            padding: 2rem;
+            background: var(--color-bg-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+        }
+
+        .test-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: var(--color-text-primary);
+        }
+
+        .component-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .component-card {
+            padding: 1.5rem;
+            background: var(--color-bg-secondary);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+        }
+
+        .component-title {
+            font-size: 1rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+            color: var(--color-text-secondary);
+        }
+
+        .theme-test {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .responsive-test {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .size-box {
+            padding: 1rem;
+            background: var(--color-bg-tertiary);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            text-align: center;
+        }
+
+        .size-label {
+            font-size: 0.875rem;
+            color: var(--color-text-tertiary);
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1 style="margin-bottom: 2rem;">a.zhai's ToolBox UI 测试</h1>
+
+        <!-- 主题测试 -->
+        <div class="test-section">
+            <h2 class="test-title">主题系统</h2>
+            <div class="theme-test">
+                <button class="btn btn-primary" onclick="document.documentElement.setAttribute('data-theme', 'dark')">
+                    深色主题
+                </button>
+                <button class="btn btn-secondary" onclick="document.documentElement.setAttribute('data-theme', 'light')">
+                    浅色主题
+                </button>
+            </div>
+            <p class="text-tertiary">点击按钮切换主题，观察颜色变化</p>
+        </div>
+
+        <!-- 按钮组件测试 -->
+        <div class="test-section">
+            <h2 class="test-title">按钮组件</h2>
+            <div class="component-grid">
+                <div class="component-card">
+                    <div class="component-title">主要按钮</div>
+                    <button class="btn btn-primary">主要按钮</button>
+                    <button class="btn btn-primary" disabled>禁用状态</button>
+                    <button class="btn btn-primary btn-sm">小号按钮</button>
+                    <button class="btn btn-primary btn-lg">大号按钮</button>
+                </div>
+
+                <div class="component-card">
+                    <div class="component-title">次要按钮</div>
+                    <button class="btn btn-secondary">次要按钮</button>
+                    <button class="btn btn-outline">轮廓按钮</button>
+                    <button class="btn btn-ghost">幽灵按钮</button>
+                </div>
+
+                <div class="component-card">
+                    <div class="component-title">状态按钮</div>
+                    <button class="btn btn-success">成功按钮</button>
+                    <button class="btn btn-warning">警告按钮</button>
+                    <button class="btn btn-danger">危险按钮</button>
+                </div>
+
+                <div class="component-card">
+                    <div class="component-title">图标按钮</div>
+                    <button class="btn btn-icon">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                    <button class="btn btn-icon btn-primary">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                    <button class="btn btn-icon btn-danger">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 表单组件测试 -->
+        <div class="test-section">
+            <h2 class="test-title">表单组件</h2>
+            <div class="component-grid">
+                <div class="component-card">
+                    <div class="component-title">输入框</div>
+                    <div class="form-group">
+                        <label class="form-label">普通输入</label>
+                        <input type="text" class="form-input" placeholder="请输入内容">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">禁用输入</label>
+                        <input type="text" class="form-input" placeholder="禁用状态" disabled>
+                    </div>
+                </div>
+
+                <div class="component-card">
+                    <div class="component-title">选择框</div>
+                    <div class="form-group">
+                        <label class="form-label">下拉选择</label>
+                        <select class="form-select">
+                            <option value="">请选择</option>
+                            <option value="1">选项一</option>
+                            <option value="2">选项二</option>
+                            <option value="3">选项三</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">多行文本</label>
+                        <textarea class="form-textarea" placeholder="请输入多行文本" rows="3"></textarea>
+                    </div>
+                </div>
+
+                <div class="component-card">
+                    <div class="component-title">复选框和单选框</div>
+                    <div class="form-group">
+                        <label class="checkbox">
+                            <input type="checkbox" class="checkbox-input">
+                            <span class="checkbox-box"></span>
+                            <span class="checkbox-text">复选框</span>
+                        </label>
+                        <label class="checkbox">
+                            <input type="checkbox" class="checkbox-input" checked>
+                            <span class="checkbox-box"></span>
+                            <span class="checkbox-text">已选中</span>
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="radio">
+                            <input type="radio" name="test-radio" class="radio-input">
+                            <span class="radio-box"></span>
+                            <span class="radio-text">选项一</span>
+                        </label>
+                        <label class="radio">
+                            <input type="radio" name="test-radio" class="radio-input" checked>
+                            <span class="radio-box"></span>
+                            <span class="radio-text">选项二</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="component-card">
+                    <div class="component-title">开关</div>
+                    <div class="form-group">
+                        <label class="switch">
+                            <input type="checkbox" class="switch-input">
+                            <span class="switch-slider"></span>
+                        </label>
+                        <span style="margin-left: 0.5rem;">开关控件</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 卡片和徽章测试 -->
+        <div class="test-section">
+            <h2 class="test-title">卡片和徽章</h2>
+            <div class="component-grid">
+                <div class="component-card">
+                    <div class="component-title">卡片</div>
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">卡片标题</div>
+                        </div>
+                        <div class="card-body">
+                            这是一个卡片组件，可以包含各种内容。卡片提供了良好的视觉层次和边框效果。
+                        </div>
+                        <div class="card-footer">
+                            <button class="btn btn-sm btn-primary">操作</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="component-card">
+                    <div class="component-title">徽章</div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                        <span class="badge badge-primary">主要</span>
+                        <span class="badge badge-secondary">次要</span>
+                        <span class="badge badge-success">成功</span>
+                        <span class="badge badge-warning">警告</span>
+                        <span class="badge badge-error">错误</span>
+                        <span class="badge badge-info">信息</span>
+                        <span class="badge badge-outline">轮廓</span>
+                    </div>
+                </div>
+
+                <div class="component-card">
+                    <div class="component-title">警告框</div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle alert-icon"></i>
+                        <div class="alert-content">
+                            <div class="alert-title">信息提示</div>
+                            <div class="alert-message">这是一个信息提示框</div>
+                        </div>
+                    </div>
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle alert-icon"></i>
+                        <div class="alert-content">
+                            <div class="alert-title">成功提示</div>
+                            <div class="alert-message">操作成功完成</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 响应式测试 -->
+        <div class="test-section">
+            <h2 class="test-title">响应式测试</h2>
+            <p class="text-tertiary" style="margin-bottom: 1rem;">调整浏览器窗口大小，观察组件响应式变化</p>
+            <div class="responsive-test">
+                <div class="size-box" style="width: 100%;">
+                    <div>100% 宽度</div>
+                    <div class="size-label">全宽容器</div>
+                </div>
+                <div class="size-box" style="width: 48%;">
+                    <div>48% 宽度</div>
+                    <div class="size-label">半宽容器（桌面端）</div>
+                </div>
+                <div class="size-box" style="width: 48%;">
+                    <div>48% 宽度</div>
+                    <div class="size-label">半宽容器（桌面端）</div>
+                </div>
+                <div class="size-box" style="width: 30%;">
+                    <div>30% 宽度</div>
+                    <div class="size-label">三分之一宽度</div>
+                </div>
+                <div class="size-box" style="width: 30%;">
+                    <div>30% 宽度</div>
+                    <div class="size-label">三分之一宽度</div>
+                </div>
+                <div class="size-box" style="width: 30%;">
+                    <div>30% 宽度</div>
+                    <div class="size-label">三分之一宽度</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 动画测试 -->
+        <div class="test-section">
+            <h2 class="test-title">动画效果</h2>
+            <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                <button class="btn btn-primary hover-lift">悬停上浮</button>
+                <button class="btn btn-secondary hover-scale">悬停缩放</button>
+                <button class="btn btn-outline press-down">按下效果</button>
+            </div>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <div class="loading-spinner"></div>
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <div class="loading-text">加载中...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 玻璃态效果 -->
+        <div class="test-section">
+            <h2 class="test-title">玻璃态效果</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+                <div class="glass" style="padding: 2rem; border-radius: var(--radius-lg);">
+                    <h3 style="margin-bottom: 1rem;">玻璃态卡片</h3>
+                    <p class="text-tertiary">这种效果在现代UI设计中很流行，提供了半透明的背景和模糊效果。</p>
+                </div>
+                <div class="glass" style="padding: 2rem; border-radius: var(--radius-lg);">
+                    <h3 style="margin-bottom: 1rem;">渐变背景</h3>
+                    <div style="background: var(--gradient-primary); padding: 1.5rem; border-radius: var(--radius-md); color: white;">
+                        渐变背景效果
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 添加一些交互效果
+        document.querySelectorAll('.btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                this.classList.add('press-down');
+                setTimeout(() => {
+                    this.classList.remove('press-down');
+                }, 150);
+            });
+        });
+
+        // 模拟加载
+        setTimeout(() => {
+            document.querySelector('.loading-text').textContent = '加载完成';
+        }, 2000);
+    </script>
+</body>
+</html>

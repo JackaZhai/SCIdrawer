@@ -1,0 +1,487 @@
+﻿/* ============================================
+   a.zhai's ToolBox - 涓绘牱寮忔枃浠?
+   鏁村悎鎵€鏈夋牱寮忔ā鍧?
+   ============================================ */
+
+/* 1. 璁捐绯荤粺 - 鍩虹璁捐浠ょ墝鍜屽伐鍏风被 */
+@import url('design-system.css');
+
+/* 2. 缁勪欢搴?- 鍙鐢║I缁勪欢 */
+@import url('components.css');
+
+/* 3. 甯冨眬绯荤粺 - 椤甸潰甯冨眬鍜岀粨鏋?*/
+@import url('layout.css');
+
+/* 4. 搴旂敤鏍峰紡 - 鐗瑰畾椤甸潰鍜屽姛鑳芥牱寮?*/
+@import url('app.css');
+
+/* ===== 鍏ㄥ眬鏍峰紡瑕嗙洊鍜屼紭鍖?===== */
+
+/* 浼樺寲瀛椾綋娓叉煋 */
+body {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 浼樺寲鍥剧墖鍜屽獟浣?*/
+img, video {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* 浼樺寲琛ㄥ崟鍏冪礌 */
+input, button, textarea, select {
+  font: inherit;
+  color: inherit;
+}
+
+/* 浼樺寲閾炬帴 */
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--color-primary-hover);
+}
+
+/* 浼樺寲浠ｇ爜鍧?*/
+code, pre {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-sm);
+  background: var(--color-bg-tertiary);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+}
+
+pre {
+  padding: var(--space-4);
+  overflow-x: auto;
+  margin: var(--space-4) 0;
+}
+
+/* 浼樺寲鍒楄〃 */
+ul, ol {
+  padding-left: var(--space-6);
+  margin-bottom: var(--space-4);
+}
+
+li {
+  margin-bottom: var(--space-2);
+}
+
+/* 浼樺寲琛ㄦ牸 */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: var(--space-4);
+}
+
+th, td {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  text-align: left;
+}
+
+th {
+  background: var(--color-bg-surface);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* 浼樺寲寮曠敤 */
+blockquote {
+  border-left: 3px solid var(--color-primary);
+  padding-left: var(--space-4);
+  margin: var(--space-4) 0;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+/* 浼樺寲姘村钩绾?*/
+hr {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: var(--space-6) 0;
+}
+
+/* 浼樺寲閿洏蹇嵎閿樉绀?*/
+kbd {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-2);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* 浼樺寲缁嗚妭鍏冪礌 */
+details {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-3);
+}
+
+summary {
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  outline: none;
+}
+
+details[open] summary {
+  margin-bottom: var(--space-3);
+}
+
+/* 浼樺寲鏍囪 */
+mark {
+  background: rgba(245, 158, 11, 0.2);
+  color: inherit;
+  padding: 0.125rem 0.25rem;
+  border-radius: var(--radius-xs);
+}
+
+/* 浼樺寲灏忔枃鏈?*/
+small {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+/* 浼樺寲涓嬫爣鍜屼笂鏍?*/
+sub, sup {
+  font-size: var(--font-size-xs);
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+
+sup {
+  top: -0.5em;
+}
+
+sub {
+  bottom: -0.25em;
+}
+
+/* 浼樺寲閫夋嫨鏂囨湰 */
+::selection {
+  background: rgba(185, 113, 63, 0.28);
+  color: inherit;
+}
+
+/* 浼樺寲鍗犱綅绗?*/
+::placeholder {
+  color: var(--color-text-muted);
+  opacity: 1;
+}
+
+/* 浼樺寲绂佺敤鐘舵€?*/
+:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 浼樺寲鐒︾偣鐘舵€?*/
+:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* 浼樺寲鎵撳嵃鏍峰紡 */
+@media print {
+  * {
+    background: transparent !important;
+    color: #000 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  a, a:visited {
+    text-decoration: underline;
+  }
+
+  a[href]::after {
+    content: " (" attr(href) ")";
+  }
+
+  abbr[title]::after {
+    content: " (" attr(title) ")";
+  }
+
+  pre, blockquote {
+    border: 1px solid #999;
+    page-break-inside: avoid;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tr, img {
+    page-break-inside: avoid;
+  }
+
+  img {
+    max-width: 100% !important;
+  }
+
+  p, h2, h3 {
+    orphans: 3;
+    widows: 3;
+  }
+
+  h2, h3 {
+    page-break-after: avoid;
+  }
+}
+
+/* ===== 鎬ц兘浼樺寲 ===== */
+
+/* 鍑忓皯閲嶇粯鍜岄噸鎺?*/
+.will-change-transform {
+  will-change: transform;
+}
+
+.will-change-opacity {
+  will-change: opacity;
+}
+
+/* 纭欢鍔犻€?*/
+.gpu-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* 浼樺寲鍔ㄧ敾鎬ц兘 */
+.animate-once {
+  animation-fill-mode: forwards;
+}
+
+.animate-infinite {
+  animation-iteration-count: infinite;
+}
+
+/* ===== 杈呭姪鍔熻兘 ===== */
+
+/* 灞忓箷闃呰鍣ㄤ笓鐢?*/
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* 楂樺姣斿害妯″紡 */
+@media (prefers-contrast: high) {
+  :root {
+    --color-border: rgba(255, 255, 255, 0.3);
+    --color-border-hover: rgba(255, 255, 255, 0.5);
+  }
+}
+
+/* 鍑忓皯鍔ㄧ敾 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ===== 鑷畾涔夊睘鎬ц鐩?===== */
+
+/* 娣辫壊涓婚浼樺寲 */
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+/* 娴呰壊涓婚浼樺寲 */
+[data-theme="light"] {
+  color-scheme: light;
+}
+
+/* 楂樺姣斿害涓婚 */
+[data-theme="high-contrast"] {
+  --color-bg-primary: #000;
+  --color-bg-secondary: #111;
+  --color-text-primary: #fff;
+  --color-text-secondary: #ccc;
+  --color-border: #444;
+  --color-primary: #ff0;
+  color-scheme: dark;
+}
+
+/* ===== 娴忚鍣ㄧ壒瀹氫慨澶?===== */
+
+/* Firefox 婊氬姩鏉?*/
+@supports (scrollbar-width: thin) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border) var(--color-bg-surface);
+  }
+}
+
+/* Safari 杈撳叆妗嗕慨澶?*/
+input[type="search"] {
+  -webkit-appearance: none;
+}
+
+/* Edge 婊氬姩鏉?*/
+@supports (-ms-ime-align: auto) {
+  .scrollable {
+    -ms-overflow-style: -ms-autohiding-scrollbar;
+  }
+}
+
+/* ===== 鍔犺浇鐘舵€?===== */
+
+/* 搴旂敤鍔犺浇 */
+.app-loading {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--color-bg-primary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.app-loading-spinner {
+  width: 3rem;
+  height: 3rem;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: var(--radius-full);
+  animation: spinner-rotate 1s linear infinite;
+}
+
+.app-loading-text {
+  margin-top: var(--space-4);
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  animation: pulse 2s infinite;
+}
+
+/* ===== 閿欒鐘舵€?===== */
+
+.error-boundary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  padding: var(--space-8);
+  text-align: center;
+}
+
+.error-icon {
+  font-size: 4rem;
+  color: var(--color-error);
+  margin-bottom: var(--space-4);
+  opacity: 0.8;
+}
+
+.error-title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--space-2);
+  color: var(--color-error);
+}
+
+.error-message {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-6);
+  max-width: 32rem;
+}
+
+/* ===== 绂荤嚎鐘舵€?===== */
+
+.offline-indicator {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: var(--color-error);
+  color: white;
+  padding: var(--space-3) var(--space-4);
+  text-align: center;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  z-index: 1000;
+  animation: slide-down 0.3s ease;
+}
+
+.offline-indicator::before {
+  content: '鈿?';
+  margin-right: var(--space-2);
+}
+
+/* ===== 鏇存柊鎻愮ず ===== */
+
+.update-available {
+  position: fixed;
+  bottom: var(--space-4);
+  right: var(--space-4);
+  background: var(--color-primary);
+  color: white;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  z-index: 40;
+  animation: slide-up 0.3s ease;
+}
+
+.update-button {
+  background: white;
+  color: var(--color-primary);
+  border: none;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.update-button:hover {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.update-dismiss {
+  background: none;
+  border: none;
+  color: white;
+  opacity: 0.7;
+  cursor: pointer;
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+}
+
+.update-dismiss:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.1);
+}

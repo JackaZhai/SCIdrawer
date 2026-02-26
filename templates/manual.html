@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户手册 | SCIdrawer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .manual-hero {
+            background: var(--gradient-primary);
+            color: white;
+            border-radius: var(--radius-xl);
+            padding: var(--space-8);
+            position: relative;
+            overflow: hidden;
+        }
+        .manual-hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.15), transparent 55%);
+        }
+        .manual-hero-content {
+            position: relative;
+            z-index: 1;
+        }
+        .manual-grid {
+            display: grid;
+            grid-template-columns: 16rem 1fr;
+            gap: var(--space-6);
+        }
+        .manual-nav {
+            position: sticky;
+            top: var(--space-6);
+            align-self: start;
+            background: var(--color-bg-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-4);
+        }
+        .manual-nav a {
+            display: block;
+            padding: var(--space-2) var(--space-3);
+            border-radius: var(--radius-md);
+            color: var(--color-text-secondary);
+            text-decoration: none;
+            font-size: var(--font-size-sm);
+        }
+        .manual-nav a:hover {
+            background: var(--color-bg-surface-hover);
+            color: var(--color-text-primary);
+        }
+        .manual-card {
+            background: var(--color-bg-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-6);
+        }
+        .manual-section {
+            border-bottom: 1px solid var(--color-border);
+            padding-bottom: var(--space-6);
+            margin-bottom: var(--space-6);
+        }
+        .manual-section:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+            margin-bottom: 0;
+        }
+        .manual-section h3 {
+            margin-bottom: var(--space-3);
+        }
+        .manual-list {
+            display: grid;
+            gap: var(--space-2);
+            color: var(--color-text-secondary);
+            font-size: var(--font-size-sm);
+        }
+        .manual-code {
+            background: var(--color-bg-tertiary);
+            border-radius: var(--radius-md);
+            padding: var(--space-3);
+            font-family: var(--font-family-mono);
+            font-size: var(--font-size-xs);
+            color: var(--color-text-primary);
+            overflow-x: auto;
+        }
+        @media (max-width: 960px) {
+            .manual-grid {
+                grid-template-columns: 1fr;
+            }
+            .manual-nav {
+                position: static;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="/" class="sidebar-brand">
+                    <div class="brand-logo">
+                        <img src="{{ url_for('static', filename='app-icon.png') }}" alt="SCIdrawer Logo" class="brand-logo-image">
+                    </div>
+                    <div class="brand-text">
+                        <div class="brand-title">SCIdrawer</div>
+            
+                    </div>
+                </a>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="/" class="nav-item">
+                    <i class="fas fa-home nav-icon"></i>
+                    <span class="nav-label">仪表盘</span>
+                </a>
+                <a href="/#page-image-generation" class="nav-item">
+                    <i class="fas fa-palette nav-icon"></i>
+                    <span class="nav-label">图像生成</span>
+                </a>
+                <a href="/#page-api-keys" class="nav-item">
+                    <i class="fas fa-key nav-icon"></i>
+                    <span class="nav-label">API 密钥</span>
+                </a>
+                <a href="/#page-settings" class="nav-item">
+                    <i class="fas fa-cog nav-icon"></i>
+                    <span class="nav-label">设置</span>
+                </a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <header class="topbar">
+                <div class="topbar-left">
+                    <div class="page-title">
+                        <h1>用户手册</h1>
+                        <p class="page-subtitle">SCIdrawer 使用指南</p>
+                    </div>
+                </div>
+            </header>
+
+            <div class="page-content">
+                <div class="manual-hero">
+                    <div class="manual-hero-content">
+                        <h2>快速掌握平台使用</h2>
+                        <p>本手册覆盖仪表盘、API 密钥管理、图像生成和系统设置等常用功能。</p>
+                    </div>
+                </div>
+
+                <div class="manual-grid" style="margin-top: var(--space-6);">
+                    <div class="manual-nav">
+                        <a href="#quick-start">快速开始</a>
+                        <a href="#dashboard">仪表盘</a>
+                        <a href="#api-keys">API 密钥管理</a>
+                        <a href="#image-generation">图像生成</a>
+                        <a href="#settings">系统设置</a>
+                        <a href="#faq">常见问题</a>
+                    </div>
+
+                    <div class="manual-card">
+                        <section class="manual-section" id="quick-start">
+                            <h3>快速开始</h3>
+                            <div class="manual-list">
+                                <div>1) 启动服务：<span class="manual-code">python app.py</span></div>
+                                <div>2) 浏览器访问：<span class="manual-code">http://&lt;你的公网IP&gt;:&lt;端口&gt;</span></div>
+                            </div>
+                        </section>
+
+                        <section class="manual-section" id="dashboard">
+                            <h3>仪表盘</h3>
+                            <div class="manual-list">
+                                <div>积分余额：读取当前 API Key 的余额。</div>
+                                <div>API Key：展示是否已配置有效 Key。</div>
+                                <div>API 主机：显示国内直连或海外节点。</div>
+                                <div>模型状态：显示各模型当前状态，可点击刷新。</div>
+                            </div>
+                        </section>
+
+                        <section class="manual-section" id="api-keys">
+                            <h3>API 密钥管理</h3>
+                            <div class="manual-list">
+                                <div>在“API 密钥”页面输入 Key 并保存。</div>
+                                <div>可测试、删除或切换当前 Key。</div>
+                            </div>
+                        </section>
+
+                        <section class="manual-section" id="image-generation">
+                            <h3>图像生成</h3>
+                            <div class="manual-list">
+                                <p>支持文本提示词 + 参数控制，并可上传参考图。本平台集成了先进的 AI 绘图模型（如 Nano Banana 系列），特别适合用于生成高质量的科研插图。</p>
+                                
+                                <h4 style="margin-top: 1rem; margin-bottom: 0.5rem; color: var(--color-text-primary);">4.1 基本生成流程</h4>
+                                <ol style="margin-left: 1.5rem; margin-bottom: 1rem;">
+                                    <li><strong>输入提示词</strong>：在文本框中详细描述你想要的图像内容。</li>
+                                    <li><strong>选择模型</strong>：
+                                        <ul style="margin-left: 1rem; margin-top: 0.25rem;">
+                                            <li><code>nano-banana-fast</code>：速度快，适合快速验证想法。</li>
+                                            <li><code>nano-banana</code>：标准模型，平衡速度与质量。</li>
+                                            <li><code>nano-banana-pro</code>：高质量模型，细节更丰富，适合最终出图。</li>
+                                        </ul>
+                                    </li>
+                                    <li><strong>设置参数</strong>：选择合适的画面比例（如 16:9, 4:3）和分辨率。</li>
+                                    <li><strong>点击“生成图像”</strong>：等待 AI 处理完成。</li>
+                                </ol>
+
+                                <h4 style="margin-top: 1.5rem; margin-bottom: 0.5rem; color: var(--color-text-primary);">4.2 科研绘图指南</h4>
+                                <p>Nano Banana 系列模型在科研绘图方面表现出色。为了获得最佳效果，请遵循以下指南。</p>
+                                
+                                <h5 style="margin-top: 1rem; margin-bottom: 0.5rem; color: var(--color-text-primary);">4.2.1 生成科研绘图的关键</h5>
+                                <p><strong>Prompt（提示词）要像写说明书一样，描述越详细，模型生成的图像越结构化，效果越好。</strong></p>
+                                <p>一个实用的科研插图 Prompt，通常需要包含以下要素：</p>
+                                <ul style="margin-left: 1.5rem; margin-bottom: 1rem;">
+                                    <li><strong>主题</strong>：你要画什么（机制 / 流程 / 对比）</li>
+                                    <li><strong>风格</strong>：简洁、技术图、论文可用</li>
+                                    <li><strong>标注要求</strong>：哪些元素必须出现、使用英文标签</li>
+                                    <li><strong>布局规则</strong>：箭头、模块、层级关系</li>
+                                    <li><strong>限制条件</strong>：避免艺术化、渐变、装饰效果</li>
+                                </ul>
+
+                                <h5 style="margin-top: 1rem; margin-bottom: 0.5rem; color: var(--color-text-primary);">4.2.2 实用 Prompt 案例库</h5>
+                                <p>以下是 7 个经过验证的科研绘图 Prompt 模板，您可以直接复制并根据需要修改：</p>
+                                
+                                <div style="background: var(--color-bg-tertiary); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1rem;">
+                                    <strong>1️⃣ 信息图（案例：单细胞测序的优势）</strong><br>
+                                    <code style="display:block; margin-top:0.5rem; white-space: pre-wrap;">"Produce an infographic summarizing the key advantages of single-cell RNA sequencing. Use subtle colors, icon-like shapes, and concise English text. Focus on clarity and avoid decorative backgrounds or artistic gradients."</code>
+                                </div>
+                                
+                                <div style="background: var(--color-bg-tertiary); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1rem;">
+                                    <strong>2️⃣ 概念图（案例：微生物组与免疫的关系）</strong><br>
+                                    <code style="display:block; margin-top:0.5rem; white-space: pre-wrap;">"Create a conceptual diagram illustrating how microbiome composition influences host immunity. Use simple icons for microbes and immune cells, with arrows showing interactions. Maintain a clean, high-resolution style with clear English labels."</code>
+                                </div>
+
+                                <div style="background: var(--color-bg-tertiary); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1rem;">
+                                    <strong>3️⃣ 数据分析流程图（案例：RNA-seq分析管线）</strong><br>
+                                    <code style="display:block; margin-top:0.5rem; white-space: pre-wrap;">"Create a bioinformatics pipeline diagram for RNA-seq analysis, including raw data QC, trimming, alignment, read counting, differential expression, and visualization. Use a horizontal layout with consistent color coding and clear English labels."</code>
+                                </div>
+
+                                <div style="background: var(--color-bg-tertiary); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1rem;">
+                                    <strong>4️⃣ 作用机制图（案例：抗体阻断机制）</strong><br>
+                                    <code style="display:block; margin-top:0.5rem; white-space: pre-wrap;">"Visualize the mechanism of action of an antibody therapy blocking a receptor–ligand interaction. Show the cell membrane, receptors, antibodies, and downstream inhibition. Use clear labeling and avoid artistic effects or gradients."</code>
+                                </div>
+
+                                <div style="background: var(--color-bg-tertiary); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1rem;">
+                                    <strong>5️⃣ 多组学整合流程示意图</strong><br>
+                                    <code style="display:block; margin-top:0.5rem; white-space: pre-wrap;">"Draw a schematic representing the integration of genomics, transcriptomics, proteomics, and metabolomics data into a unified analysis pipeline. Use four modules feeding into one central analytical framework. Ensure logical structure and clarity."</code>
+                                </div>
+
+                                <div style="background: var(--color-bg-tertiary); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1rem;">
+                                    <strong>6️⃣ 方法对比图（案例：电子显微镜 vs 共聚焦显微镜）</strong><br>
+                                    <code style="display:block; margin-top:0.5rem; white-space: pre-wrap;">"Create a comparison diagram showing the differences between electron microscopy and confocal microscopy. Include imaging resolution, sample preparation, and typical applications. Use a balanced two-column layout with clear English labels and no decorative background."</code>
+                                </div>
+
+                                <div style="background: var(--color-bg-tertiary); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1rem;">
+                                    <strong>7️⃣ 实验设计图（案例：随机对照临床试验）</strong><br>
+                                    <code style="display:block; margin-top:0.5rem; white-space: pre-wrap;">"Generate a study design diagram for a randomized controlled trial comparing Drug A vs placebo. Include participant enrollment, randomization, intervention, follow-up, and endpoint assessment. Keep the visual style neutral and suitable for journal submission."</code>
+                                </div>
+
+                                <h5 style="margin-top: 1rem; margin-bottom: 0.5rem; color: var(--color-text-primary);">4.2.3 重要提示</h5>
+                                <div style="border-left: 4px solid var(--color-warning); padding-left: 1rem; margin: 1rem 0;">
+                                    <p><strong>⚠️ AI 永远不负责“画得正确”！</strong></p>
+                                    <p>虽然 Nano Banana 极大提升了科研绘图的效率，但它并不能替你判断科学内容是否正确。</p>
+                                    <p>Nano Banana 的出现，并不是为了让科研人员少思考，而是让大家少被重复劳动消耗。</p>
+                                    <p><strong>请记住，在实际使用中，一定不要忘了人工校对！</strong></p>
+                                </div>
+
+                                <h4 style="margin-top: 1.5rem; margin-bottom: 0.5rem; color: var(--color-text-primary);">4.3 参考图上传</h4>
+                                <p>支持上传参考图（最多 3 张，每张不超过 5MB）。上传后会在列表中展示缩略图与文件信息，可点击删除。参考图可以帮助 AI 更好地理解你想要的构图或风格。</p>
+                            </div>
+                        </section>
+
+                        <section class="manual-section" id="settings">
+                            <h3>系统设置</h3>
+                            <div class="manual-list">
+                                <div>选择 API 主机：国内直连或海外节点。</div>
+                                <div>设置默认绘图模型。</div>
+                            </div>
+                        </section>
+
+                        <section class="manual-section" id="faq">
+                            <h3>常见问题</h3>
+                            <div class="manual-list">
+                                <div>余额显示 <span class="manual-code">--</span>：请确认已配置 API Key。</div>
+                                <div>模型状态异常：查看提示信息后再重试。</div>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>
