@@ -1,13 +1,17 @@
-/* ============================================
-   a.zhai's ToolBox - 主应用脚本
+﻿/* ============================================
+   SCIdrawer - 主应用脚本
    ============================================ */
 
 // 应用状态管理
 const AppState = {
     currentPage: 'dashboard',
     theme: localStorage.getItem('theme') || 'dark',
-    apiKey: null,
+    hasKey: false,
+    keyStore: null,
+    apiHost: '',
+    activeBaseUrl: '',
     isLoading: false,
+    currentGeneration: null,
     notifications: [],
     referenceImages: []
 };
@@ -20,7 +24,6 @@ const DOM = {
 
     // 顶部栏
     pageTitle: document.getElementById('pageTitle'),
-    pageSubtitle: document.getElementById('pageSubtitle'),
     themeToggle: document.getElementById('themeToggle'),
 
     // 页面容器
@@ -35,27 +38,31 @@ const DOM = {
 
     // 图像生成
     promptInput: document.getElementById('promptInput'),
-    modelSelect: document.getElementById('modelSelect'),
-    aspectRatioSelect: document.getElementById('aspectRatioSelect'),
-    resolutionSelect: document.getElementById('resolutionSelect'),
+    generationTextProviderSelect: document.getElementById('generationTextProviderSelect'),
+    generationImageProviderSelect: document.getElementById('generationImageProviderSelect'),
+    generationTextModelSelect: document.getElementById('generationTextModelSelect'),
+    generationImageModelSelect: document.getElementById('generationImageModelSelect'),
+    generationExpModeSelect: document.getElementById('generationExpModeSelect'),
+    generationRetrievalSelect: document.getElementById('generationRetrievalSelect'),
+    generationCriticRoundsInput: document.getElementById('generationCriticRoundsInput'),
+    generationCriticEnabledCheck: document.getElementById('generationCriticEnabledCheck'),
+    generationEvalEnabledCheck: document.getElementById('generationEvalEnabledCheck'),
+    generationModelSection: document.getElementById('generationModelSection'),
     referenceImagesInput: document.getElementById('referenceImagesInput'),
     referenceImagesList: document.getElementById('referenceImagesList'),
     generateBtn: document.getElementById('generateBtn'),
     resetFormBtn: document.getElementById('resetFormBtn'),
     progressBar: document.getElementById('progressBar'),
     progressText: document.getElementById('progressText'),
+    paperStageTitle: document.getElementById('paperStageTitle'),
+    paperStageChip: document.getElementById('paperStageChip'),
+    paperStageMessage: document.getElementById('paperStageMessage'),
+    paperTaskIdText: document.getElementById('paperTaskIdText'),
+    paperStageList: document.getElementById('paperStageList'),
+    paperStageItems: document.querySelectorAll('.paper-stage-item'),
+    generationWorkflowSummary: document.getElementById('generationWorkflowSummary'),
     downloadBtn: document.getElementById('downloadBtn'),
     clearBtn: document.getElementById('clearBtn'),
-
-    // 聊天
-    newChatBtn: document.getElementById('newChatBtn'),
-    chatList: document.getElementById('chatList'),
-    chatMessages: document.getElementById('chatMessages'),
-    chatInput: document.getElementById('chatInput'),
-    sendMessageBtn: document.getElementById('sendMessageBtn'),
-    exportChatBtn: document.getElementById('exportChatBtn'),
-    clearChatBtn: document.getElementById('clearChatBtn'),
-    streamToggle: document.getElementById('streamToggle'),
 
     // API 密钥
     currentKeyStatus: document.getElementById('currentKeyStatus'),
@@ -76,55 +83,517 @@ const DOM = {
 
     // 设置
     timeoutSelect: document.getElementById('timeoutSelect'),
-    retrySelect: document.getElementById('retrySelect')
+    retrySelect: document.getElementById('retrySelect'),
+
 };
 
 // 页面配置
 const PageConfig = {
     dashboard: {
-        title: '仪表盘',
-        subtitle: "a.zhai's ToolBox 运行状态"
+        title: '工作台'
     },
     'image-generation': {
-        title: '图像生成',
-        subtitle: '使用先进的 AI 模型生成高质量图像'
+        title: '图像生成'
     },
-    chat: {
-        title: '智能对话',
-        subtitle: '功能正在开发中'
-    },
+
     'api-keys': {
-        title: 'API 密钥',
-        subtitle: '安全地管理您的 API 密钥'
+        title: 'API 设置'
+    },
+    'edit-banana': {
+        title: 'Edit Banana'
     },
     settings: {
-        title: '系统设置',
-        subtitle: '配置应用程序参数和个性化选项'
+        title: '系统设置'
     },
-    toolbox: {
-        title: '工具箱',
-        subtitle: '实用开发与创作工具'
+};
+
+const PAPER_STAGE_LABELS = {
+    queued: '排队',
+    initializing: '初始化',
+    loading_agents: '加载 Agent',
+    processing: '生成推理',
+    processing_retriever: '检索参考',
+    processing_planner: '规划内容',
+    processing_stylist: '风格优化',
+    processing_visualizer: '执行生图',
+    processing_critic: '批评迭代',
+    processing_eval: '评估整理',
+    saving: '写入结果',
+    completed: '完成',
+    failed: '失败'
+};
+
+const PAPER_STAGE_ORDER = [
+    'queued',
+    'initializing',
+    'loading_agents',
+    'processing',
+    'processing_retriever',
+    'processing_planner',
+    'processing_stylist',
+    'processing_visualizer',
+    'processing_critic',
+    'processing_eval',
+    'saving',
+    'completed'
+];
+
+const PROVIDER_MODEL_CATALOG = {
+    grsai: {
+        text: ['gemini-3.1-pro', 'gemini-3-pro', 'gemini-2.5-pro'],
+        image: ['sora-image', 'nano-banana-pro', 'gpt-image-1.5', 'nano-banana-fast', 'nano-banana-pro-vt']
+    },
+    openai: {
+        text: ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'gpt-4.1'],
+        image: ['gpt-image-1']
+    },
+    deepseek: {
+        text: ['deepseek-chat', 'deepseek-reasoner'],
+        image: ['gpt-image-1']
+    },
+    anthropic: {
+        text: ['claude-3-5-sonnet-latest', 'claude-3-7-sonnet-latest'],
+        image: ['gpt-image-1']
+    },
+    google: {
+        text: ['gemini-2.5-pro', 'gemini-2.5-flash'],
+        image: ['gemini-3-pro-image-preview']
+    },
+    openrouter: {
+        text: ['openai/gpt-4o-mini', 'anthropic/claude-3.5-sonnet', 'google/gemini-2.5-pro'],
+        image: ['gpt-image-1']
     }
 };
 
+const PROVIDER_BASE_URL_DEFAULTS = {
+    grsai: 'https://grsaiapi.com/v1',
+    openai: 'https://api.openai.com/v1',
+    deepseek: 'https://api.deepseek.com/v1',
+    openrouter: 'https://openrouter.ai/api/v1',
+    anthropic: 'https://api.anthropic.com',
+    google: ''
+};
+
+const ALLOWED_TEXT_MODELS = new Set([
+    'gemini-3.1-pro',
+    'gemini-3-pro',
+    'gemini-2.5-pro'
+]);
+
+const ALLOWED_IMAGE_MODELS = new Set([
+    'sora-image',
+    'nano-banana-pro',
+    'gpt-image-1.5',
+    'nano-banana-fast',
+    'nano-banana-pro-vt'
+]);
+
+function normalizeProviderName(provider) {
+    const value = String(provider || '').trim().toLowerCase();
+    if (value === 'chatgpt' || value === 'gpt') return 'openai';
+    if (value === 'claude') return 'anthropic';
+    if (value === 'gemini') return 'google';
+    if (value === 'openruter') return 'openrouter';
+    return value || 'grsai';
+}
+
+function uniq(arr) {
+    return Array.from(new Set((arr || []).filter(Boolean)));
+}
+
+function loadGenerationModelPrefs() {
+    try {
+        return JSON.parse(localStorage.getItem('generationModelPrefs') || '{}') || {};
+    } catch {
+        return {};
+    }
+}
+
+function saveGenerationModelPrefs(prefs) {
+    localStorage.setItem('generationModelPrefs', JSON.stringify(prefs || {}));
+}
+
+function persistLaneModelSelection(lane, provider, model) {
+    if (!lane || !provider) return;
+    const prefs = loadGenerationModelPrefs();
+    prefs[lane] = prefs[lane] || {};
+    prefs[lane][provider] = model || '';
+    saveGenerationModelPrefs(prefs);
+}
+
+function getActiveProvidersFromStore(store) {
+    const keys = (store && Array.isArray(store.keys)) ? store.keys : [];
+    const providers = new Set();
+    keys.forEach((item) => {
+        if (item && item.isActive && item.provider) {
+            providers.add(String(item.provider).trim().toLowerCase());
+        }
+    });
+    if (providers.size === 0) {
+        providers.add('grsai');
+    }
+    return Array.from(providers);
+}
+
+function getProviderBaseUrlFromStore(provider, store) {
+    const normalized = normalizeProviderName(provider);
+    const keyStore = store || AppState.keyStore || {};
+    const keys = Array.isArray(keyStore.keys) ? keyStore.keys : [];
+
+    const active = keys.find((item) => item && item.isActive && normalizeProviderName(item.provider) === normalized);
+    if (active && active.baseUrl) {
+        return String(active.baseUrl).trim();
+    }
+
+    const anyOne = keys.find((item) => item && normalizeProviderName(item.provider) === normalized && item.baseUrl);
+    if (anyOne && anyOne.baseUrl) {
+        return String(anyOne.baseUrl).trim();
+    }
+
+    return PROVIDER_BASE_URL_DEFAULTS[normalized] || '';
+}
+
+function syncApiKeyBaseUrlByProvider() {
+    const providerEl = document.getElementById('apiKeyProvider');
+    const baseUrlEl = document.getElementById('apiKeyBaseUrl');
+    if (!providerEl || !baseUrlEl) return;
+
+    const provider = normalizeProviderName(providerEl.value);
+    baseUrlEl.value = getProviderBaseUrlFromStore(provider, AppState.keyStore);
+}
+
+function buildGenerationModelOptions(store) {
+    const activeProviders = getActiveProvidersFromStore(store);
+    const textByProvider = {};
+    const imageByProvider = {};
+
+    activeProviders.forEach((provider) => {
+        const cfg = PROVIDER_MODEL_CATALOG[provider] || { text: [], image: [] };
+        textByProvider[provider] = uniq(cfg.text).filter((m) => ALLOWED_TEXT_MODELS.has(m));
+        imageByProvider[provider] = uniq(cfg.image).filter((m) => ALLOWED_IMAGE_MODELS.has(m));
+    });
+
+    return { activeProviders, textByProvider, imageByProvider };
+}
+
+function renderProviderSelect(selectEl, providers, selectedValue) {
+    if (!selectEl) return;
+    const list = Array.isArray(providers) ? providers : [];
+    selectEl.innerHTML = list.map((provider) => {
+        const selected = provider === selectedValue ? ' selected' : '';
+        return `<option value="${escapeHtml(provider)}"${selected}>${escapeHtml(provider)}</option>`;
+    }).join('') || '<option value="grsai">grsai</option>';
+}
+
+function renderFlatModelSelect(selectEl, models, selectedValue) {
+    if (!selectEl) return;
+    const list = Array.isArray(models) ? models : [];
+    selectEl.innerHTML = list.map((model) => {
+        const selected = model === selectedValue ? ' selected' : '';
+        return `<option value="${escapeHtml(model)}"${selected}>${escapeHtml(model)}</option>`;
+    }).join('') || '<option value="">无可用模型</option>';
+}
+
+function refreshGenerationModelOptions(storeOverride = null) {
+    const store = storeOverride || AppState.keyStore || {};
+    const options = buildGenerationModelOptions(store);
+    const activeProviders = options.activeProviders || ['grsai'];
+    const savedTextProvider = localStorage.getItem('generationTextProvider') || 'grsai';
+    const savedImageProvider = localStorage.getItem('generationImageProvider') || 'grsai';
+    const textProviderValue = (DOM.generationTextProviderSelect && DOM.generationTextProviderSelect.value) || savedTextProvider;
+    const imageProviderValue = (DOM.generationImageProviderSelect && DOM.generationImageProviderSelect.value) || savedImageProvider;
+    const selectedTextProvider = activeProviders.includes(textProviderValue)
+        ? textProviderValue
+        : (activeProviders.includes(savedTextProvider) ? savedTextProvider : (activeProviders[0] || 'grsai'));
+    const selectedImageProvider = activeProviders.includes(imageProviderValue)
+        ? imageProviderValue
+        : (activeProviders.includes(savedImageProvider) ? savedImageProvider : (activeProviders[0] || 'grsai'));
+
+    renderProviderSelect(DOM.generationTextProviderSelect, activeProviders, selectedTextProvider);
+    renderProviderSelect(DOM.generationImageProviderSelect, activeProviders, selectedImageProvider);
+    if (DOM.generationTextProviderSelect) DOM.generationTextProviderSelect.value = selectedTextProvider;
+    if (DOM.generationImageProviderSelect) DOM.generationImageProviderSelect.value = selectedImageProvider;
+    localStorage.setItem('generationTextProvider', selectedTextProvider);
+    localStorage.setItem('generationImageProvider', selectedImageProvider);
+
+    const textModels = options.textByProvider[selectedTextProvider] || [];
+    const imageModels = options.imageByProvider[selectedImageProvider] || [];
+    const modelPrefs = loadGenerationModelPrefs();
+    const prefText = (((modelPrefs || {}).text || {})[selectedTextProvider] || '').trim();
+    const prefImage = (((modelPrefs || {}).image || {})[selectedImageProvider] || '').trim();
+    const currentText = DOM.generationTextModelSelect ? DOM.generationTextModelSelect.value : '';
+    const currentImage = DOM.generationImageModelSelect ? DOM.generationImageModelSelect.value : '';
+
+    renderFlatModelSelect(
+        DOM.generationTextModelSelect,
+        textModels,
+        textModels.includes(prefText) ? prefText : currentText
+    );
+    renderFlatModelSelect(
+        DOM.generationImageModelSelect,
+        imageModels,
+        imageModels.includes(prefImage) ? prefImage : currentImage
+    );
+
+    if (DOM.generationTextModelSelect && !DOM.generationTextModelSelect.value) {
+        DOM.generationTextModelSelect.value = textModels[0] || '';
+    }
+    if (DOM.generationImageModelSelect && !DOM.generationImageModelSelect.value) {
+        DOM.generationImageModelSelect.value = imageModels[0] || '';
+    }
+
+    persistLaneModelSelection('text', selectedTextProvider, DOM.generationTextModelSelect ? DOM.generationTextModelSelect.value : '');
+    persistLaneModelSelection('image', selectedImageProvider, DOM.generationImageModelSelect ? DOM.generationImageModelSelect.value : '');
+}
+
+async function loadGenerationModelOptionsFromKeys() {
+    try {
+        const res = await fetch('/api/keys', { method: 'GET', credentials: 'same-origin' });
+        const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data.error || data.message || '加载密钥失败');
+        }
+        AppState.keyStore = data;
+        refreshGenerationModelOptions(data);
+    } catch (error) {
+        console.warn('加载模型选项失败:', error);
+        refreshGenerationModelOptions(null);
+    }
+}
+
+function updatePaperStage(stage, message, status = 'running') {
+    const hasKnownStage = stage && PAPER_STAGE_ORDER.includes(stage);
+    const safeStage = hasKnownStage ? stage : (status === 'failed' ? 'processing' : 'queued');
+    const currentIdx = PAPER_STAGE_ORDER.indexOf(safeStage);
+
+    if (DOM.paperStageTitle) {
+        DOM.paperStageTitle.textContent = status === 'idle'
+            ? '等待开始'
+            : `当前阶段：${PAPER_STAGE_LABELS[safeStage] || '处理中'}`;
+    }
+    if (DOM.paperStageChip) {
+        DOM.paperStageChip.textContent = status === 'idle'
+            ? '未开始'
+            : (status === 'failed' ? '失败' : (status === 'succeeded' ? '完成' : '进行中'));
+    }
+    if (DOM.paperStageMessage) {
+        DOM.paperStageMessage.textContent = message || '处理中...';
+    }
+
+    if (DOM.paperStageItems && DOM.paperStageItems.length) {
+        DOM.paperStageItems.forEach((item) => {
+            const itemStage = item.dataset.stage;
+            const itemIdx = PAPER_STAGE_ORDER.indexOf(itemStage);
+            item.classList.remove('is-done', 'is-current', 'is-failed');
+            if (status !== 'idle') {
+                item.classList.remove('is-preview-current');
+            }
+
+            if (status === 'idle') {
+                return;
+            }
+
+            if (status === 'failed') {
+                if (itemStage === safeStage) {
+                    item.classList.add('is-failed');
+                } else if (itemIdx !== -1 && currentIdx !== -1 && itemIdx < currentIdx) {
+                    item.classList.add('is-done');
+                }
+                return;
+            }
+
+            if (status === 'succeeded') {
+                item.classList.add('is-done');
+                return;
+            }
+
+            if (itemIdx !== -1 && currentIdx !== -1 && itemIdx < currentIdx) {
+                item.classList.add('is-done');
+            } else if (itemStage === safeStage) {
+                item.classList.add('is-current');
+            }
+        });
+    }
+    if (DOM.paperStageList && status !== 'idle') {
+        DOM.paperStageList.classList.remove('is-workflow-updating');
+    }
+}
+
+function updatePaperTaskId(taskId) {
+    if (!DOM.paperTaskIdText) return;
+    const id = (taskId || '').trim();
+    DOM.paperTaskIdText.textContent = id ? `任务ID：${id}` : '任务ID：--';
+}
+
+function getGenerationWorkflowConfig() {
+    const expMode = (localStorage.getItem('generationExpMode') || '').trim();
+    const retrievalSetting = (localStorage.getItem('generationRetrieval') || '').trim();
+    const criticEnabled = localStorage.getItem('generationCriticEnabled') !== '0';
+    const evalEnabled = localStorage.getItem('generationEvalEnabled') !== '0';
+    const criticRoundsRaw = localStorage.getItem('generationCriticRounds');
+    const criticRounds = Number.isFinite(Number(criticRoundsRaw)) ? Number(criticRoundsRaw) : 3;
+
+    return {
+        expMode,
+        retrievalSetting,
+        criticEnabled,
+        evalEnabled,
+        criticRounds: Math.max(0, Math.min(10, Math.trunc(criticRounds)))
+    };
+}
+
+function syncGenerationWorkflowOptions() {
+    const cfg = getGenerationWorkflowConfig();
+    if (DOM.generationExpModeSelect) {
+        DOM.generationExpModeSelect.value = cfg.expMode;
+    }
+    if (DOM.generationRetrievalSelect) {
+        DOM.generationRetrievalSelect.value = cfg.retrievalSetting;
+    }
+    if (DOM.generationCriticEnabledCheck) {
+        DOM.generationCriticEnabledCheck.checked = !!cfg.criticEnabled;
+    }
+    if (DOM.generationEvalEnabledCheck) {
+        DOM.generationEvalEnabledCheck.checked = !!cfg.evalEnabled;
+    }
+    if (DOM.generationCriticRoundsInput) {
+        DOM.generationCriticRoundsInput.value = String(cfg.criticRounds);
+        DOM.generationCriticRoundsInput.disabled = !cfg.criticEnabled;
+    }
+    refreshGenerationWorkflowControlState();
+    updateWorkflowPreview(false);
+}
+
+function refreshGenerationWorkflowControlState() {
+    const expMode = DOM.generationExpModeSelect ? (DOM.generationExpModeSelect.value || 'dev_full') : 'dev_full';
+    const isVanilla = expMode === 'vanilla';
+    const supportsCritic = ['dev_full', 'demo_full', 'dev_planner_critic', 'demo_planner_critic'].includes(expMode);
+    if (DOM.generationRetrievalSelect) {
+        DOM.generationRetrievalSelect.disabled = isVanilla;
+    }
+    if (DOM.generationCriticEnabledCheck) {
+        DOM.generationCriticEnabledCheck.disabled = !supportsCritic;
+        if (!supportsCritic) DOM.generationCriticEnabledCheck.checked = false;
+    }
+    if (DOM.generationCriticRoundsInput) {
+        const criticEnabled = DOM.generationCriticEnabledCheck ? DOM.generationCriticEnabledCheck.checked : true;
+        DOM.generationCriticRoundsInput.disabled = !supportsCritic || !criticEnabled;
+    }
+}
+
+function getWorkflowPlanFromUI() {
+    const expModeRaw = DOM.generationExpModeSelect ? (DOM.generationExpModeSelect.value || '').trim() : '';
+    const retrieval = DOM.generationRetrievalSelect ? (DOM.generationRetrievalSelect.value || '').trim() : '';
+    const criticEnabled = DOM.generationCriticEnabledCheck ? !!DOM.generationCriticEnabledCheck.checked : true;
+    const evalEnabled = DOM.generationEvalEnabledCheck ? !!DOM.generationEvalEnabledCheck.checked : true;
+    const criticRounds = DOM.generationCriticRoundsInput
+        ? Math.max(0, Math.min(10, Math.trunc(Number(DOM.generationCriticRoundsInput.value) || 0)))
+        : 0;
+
+    const expMode = expModeRaw || 'dev_full';
+    const stages = ['queued', 'initializing', 'loading_agents', 'processing'];
+    let expLabel = '';
+    if (expMode === 'vanilla') {
+        stages.push('processing_visualizer');
+        expLabel = 'Vanilla（直接生图）';
+    } else if (expMode === 'dev_planner') {
+        stages.push('processing_planner', 'processing_visualizer');
+        expLabel = 'Planner + 生图';
+    } else if (expMode === 'dev_planner_stylist') {
+        stages.push('processing_planner', 'processing_stylist', 'processing_visualizer');
+        expLabel = 'Planner + Stylist + 生图';
+    } else if (expMode === 'dev_planner_critic' || expMode === 'demo_planner_critic') {
+        stages.push('processing_planner', 'processing_visualizer');
+        if (criticEnabled && criticRounds > 0) {
+            stages.push('processing_critic');
+        }
+        expLabel = 'Planner + Critic';
+    } else {
+        stages.push('processing_retriever', 'processing_planner', 'processing_stylist', 'processing_visualizer');
+        if (criticEnabled && criticRounds > 0) {
+            stages.push('processing_critic');
+        }
+        expLabel = expMode === 'demo_full' ? 'Demo Full' : 'Full';
+    }
+    if (evalEnabled && !['demo_full', 'demo_planner_critic', 'dev_retriever'].includes(expMode)) {
+        stages.push('processing_eval');
+    }
+    stages.push('saving', 'completed');
+
+    return {
+        expMode,
+        expLabel,
+        retrieval,
+        criticEnabled,
+        evalEnabled,
+        criticRounds,
+        stages: Array.from(new Set(stages))
+    };
+}
+
+function animateWorkflowPreview() {
+    if (!DOM.paperStageList) return;
+    DOM.paperStageList.classList.remove('is-workflow-updating');
+    // Force reflow to restart animation.
+    void DOM.paperStageList.offsetWidth;
+    DOM.paperStageList.classList.add('is-workflow-updating');
+    setTimeout(() => {
+        if (DOM.paperStageList) DOM.paperStageList.classList.remove('is-workflow-updating');
+    }, 420);
+}
+
+function updateWorkflowPreview(animate = false) {
+    const plan = getWorkflowPlanFromUI();
+    const planSet = new Set(plan.stages);
+    if (DOM.paperStageItems && DOM.paperStageItems.length) {
+        let plannedIdx = 0;
+        DOM.paperStageItems.forEach((item) => {
+            const stage = item.dataset.stage;
+            const isPlanned = planSet.has(stage);
+            item.classList.remove('is-planned', 'is-skipped', 'is-preview-current');
+            if (isPlanned) {
+                item.classList.add('is-planned');
+                item.style.setProperty('--wf-delay', `${plannedIdx * 24}ms`);
+                plannedIdx += 1;
+            } else {
+                item.classList.add('is-skipped');
+                item.style.removeProperty('--wf-delay');
+            }
+        });
+        const focusStage = plan.stages.find((s) => s.startsWith('processing_')) || 'processing';
+        const focusEl = Array.from(DOM.paperStageItems).find((item) => item.dataset.stage === focusStage);
+        if (focusEl) focusEl.classList.add('is-preview-current');
+    }
+
+    if (DOM.generationWorkflowSummary) {
+        const criticText = plan.criticEnabled && plan.criticRounds > 0 ? `审图 ${plan.criticRounds} 轮` : '审图关闭';
+        const evalText = plan.evalEnabled ? '评估开启' : '评估关闭';
+        const retrievalText = plan.retrieval ? `检索=${plan.retrieval}` : '检索默认';
+        DOM.generationWorkflowSummary.textContent = `当前流程预览：${plan.expLabel} · ${criticText} · ${evalText} · ${retrievalText}`;
+    }
+
+    if (animate) animateWorkflowPreview();
+}
+
 // 初始化应用
 function initApp() {
-    console.log("初始化 a.zhai's ToolBox 应用...");
+    console.log("初始化 SCIdrawer 应用...");
 
     // 设置主题
     setTheme(AppState.theme);
 
     // 绑定事件
     bindEvents();
-    bindToolboxEvents();
-
     renderReferenceImages();
+    syncGenerationWorkflowOptions();
 
     // 加载初始数据
     loadInitialData();
 
     // 显示当前页面
     showPage(AppState.currentPage);
+    updatePaperStage('queued', '提交任务后会显示 PaperBanana 当前处理阶段。', 'idle');
+    updatePaperTaskId('');
 
     console.log('应用初始化完成');
 }
@@ -220,7 +689,7 @@ function bindEvents() {
         DOM.clearChatBtn.addEventListener('click', clearChat);
     }
 
-    // API 密钥事件
+    // API 设置事件
     if (DOM.addKeyBtn) {
         DOM.addKeyBtn.addEventListener('click', addApiKey);
     }
@@ -231,6 +700,76 @@ function bindEvents() {
 
     if (DOM.refreshKeysBtn) {
         DOM.refreshKeysBtn.addEventListener('click', refreshApiKeys);
+    }
+
+    const apiKeyProviderEl = document.getElementById('apiKeyProvider');
+    if (apiKeyProviderEl) {
+        apiKeyProviderEl.addEventListener('change', syncApiKeyBaseUrlByProvider);
+    }
+    if (DOM.generationTextProviderSelect) {
+        DOM.generationTextProviderSelect.addEventListener('change', () => {
+            const prev = localStorage.getItem('generationTextProvider') || 'grsai';
+            persistLaneModelSelection('text', prev, DOM.generationTextModelSelect ? DOM.generationTextModelSelect.value : '');
+            localStorage.setItem('generationTextProvider', DOM.generationTextProviderSelect.value || 'grsai');
+            refreshGenerationModelOptions();
+        });
+    }
+    if (DOM.generationImageProviderSelect) {
+        DOM.generationImageProviderSelect.addEventListener('change', () => {
+            const prev = localStorage.getItem('generationImageProvider') || 'grsai';
+            persistLaneModelSelection('image', prev, DOM.generationImageModelSelect ? DOM.generationImageModelSelect.value : '');
+            localStorage.setItem('generationImageProvider', DOM.generationImageProviderSelect.value || 'grsai');
+            refreshGenerationModelOptions();
+        });
+    }
+    if (DOM.generationTextModelSelect) {
+        DOM.generationTextModelSelect.addEventListener('change', () => {
+            const provider = (DOM.generationTextProviderSelect && DOM.generationTextProviderSelect.value) || 'grsai';
+            persistLaneModelSelection('text', provider, DOM.generationTextModelSelect.value || '');
+        });
+    }
+    if (DOM.generationImageModelSelect) {
+        DOM.generationImageModelSelect.addEventListener('change', () => {
+            const provider = (DOM.generationImageProviderSelect && DOM.generationImageProviderSelect.value) || 'grsai';
+            persistLaneModelSelection('image', provider, DOM.generationImageModelSelect.value || '');
+        });
+    }
+    if (DOM.generationExpModeSelect) {
+        DOM.generationExpModeSelect.addEventListener('change', () => {
+            localStorage.setItem('generationExpMode', (DOM.generationExpModeSelect.value || '').trim());
+            refreshGenerationWorkflowControlState();
+            updateWorkflowPreview(true);
+        });
+    }
+    if (DOM.generationRetrievalSelect) {
+        DOM.generationRetrievalSelect.addEventListener('change', () => {
+            localStorage.setItem('generationRetrieval', (DOM.generationRetrievalSelect.value || '').trim());
+            updateWorkflowPreview(true);
+        });
+    }
+    if (DOM.generationCriticEnabledCheck) {
+        DOM.generationCriticEnabledCheck.addEventListener('change', () => {
+            const enabled = !!DOM.generationCriticEnabledCheck.checked;
+            localStorage.setItem('generationCriticEnabled', enabled ? '1' : '0');
+            refreshGenerationWorkflowControlState();
+            updateWorkflowPreview(true);
+        });
+    }
+    if (DOM.generationEvalEnabledCheck) {
+        DOM.generationEvalEnabledCheck.addEventListener('change', () => {
+            const enabled = !!DOM.generationEvalEnabledCheck.checked;
+            localStorage.setItem('generationEvalEnabled', enabled ? '1' : '0');
+            updateWorkflowPreview(true);
+        });
+    }
+    if (DOM.generationCriticRoundsInput) {
+        DOM.generationCriticRoundsInput.addEventListener('change', () => {
+            const raw = Number(DOM.generationCriticRoundsInput.value);
+            const value = Number.isFinite(raw) ? Math.max(0, Math.min(10, Math.trunc(raw))) : 3;
+            DOM.generationCriticRoundsInput.value = String(value);
+            localStorage.setItem('generationCriticRounds', String(value));
+            updateWorkflowPreview(true);
+        });
     }
 
     // 设置事件
@@ -247,6 +786,11 @@ function bindEvents() {
     if (apiHostSelect) {
         apiHostSelect.addEventListener('change', saveSettings);
     }
+    const apiHostCustomInput = document.getElementById('apiHostCustomInput');
+    if (apiHostCustomInput) {
+        apiHostCustomInput.addEventListener('change', saveSettings);
+        apiHostCustomInput.addEventListener('blur', saveSettings);
+    }
 
     // 流式响应开关
     const streamToggle = document.getElementById('streamToggle');
@@ -255,12 +799,7 @@ function bindEvents() {
     }
 
     // 模型选择
-    const imageModelSelect = document.getElementById('imageModelSelect');
     const chatModelSelect = document.getElementById('chatModelSelect');
-
-    if (imageModelSelect) {
-        imageModelSelect.addEventListener('change', saveSettings);
-    }
 
     if (chatModelSelect) {
         chatModelSelect.addEventListener('change', saveSettings);
@@ -284,6 +823,18 @@ function bindEvents() {
             }
         });
     });
+
+    document.querySelectorAll('[data-fill-prompt]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const value = (btn.dataset.fillPrompt || '').trim();
+            showPage('image-generation');
+            if (DOM.promptInput && value) {
+                DOM.promptInput.value = value;
+                DOM.promptInput.focus();
+                DOM.promptInput.setSelectionRange(DOM.promptInput.value.length, DOM.promptInput.value.length);
+            }
+        });
+    });
 }
 
 // 显示页面
@@ -304,7 +855,6 @@ function showPage(pageId) {
     const config = PageConfig[pageId];
     if (config) {
         DOM.pageTitle.textContent = config.title;
-        DOM.pageSubtitle.textContent = config.subtitle;
     }
 
     // 切换页面内容
@@ -320,6 +870,10 @@ function showPage(pageId) {
     switch (pageId) {
         case 'dashboard':
             loadDashboardData();
+            break;
+        case 'image-generation':
+            loadGenerationModelOptionsFromKeys();
+            updateWorkflowPreview(false);
             break;
         case 'api-keys':
             loadApiKeys();
@@ -344,16 +898,31 @@ function performSearch(query) {
 
 // 加载初始数据
 async function loadInitialData() {
-    try {
-        // 更新API密钥状态
-        if (DOM.currentKeyStatus) {
-            const hasApiKey = window.APIService && window.APIService.apiKey;
-            DOM.currentKeyStatus.textContent = hasApiKey ? '已设置' : '未设置';
-            DOM.currentKeyStatus.className = hasApiKey ? 'badge badge-success' : 'badge badge-secondary';
+    try {        // 从后端读取当前 Key 状态
+        try {
+            const profileRes = await fetch('/api/profile', { method: 'GET', credentials: 'same-origin' });
+            const profile = await profileRes.json();
+            if (profileRes.ok) {
+                AppState.hasKey = !!profile.hasKey;
+                AppState.apiHost = profile.apiHost || '';
+                AppState.activeBaseUrl = profile.activeBaseUrl || '';
+
+                if (DOM.lastUsedTime && profile.usage && profile.usage.lastUsedAt) {
+                    DOM.lastUsedTime.textContent = new Date(profile.usage.lastUsedAt).toLocaleString();
+                }
+            } else {
+                AppState.hasKey = false;
+            }
+        } catch (e) {
+            AppState.hasKey = false;
         }
 
-        // 更新仪表盘统计数据
+        if (DOM.currentKeyStatus) {
+            DOM.currentKeyStatus.textContent = AppState.hasKey ? '已设置' : '未设置';
+            DOM.currentKeyStatus.className = AppState.hasKey ? 'badge badge-success' : 'badge badge-secondary';
+        }// 更新仪表盘统计数据
         await updateDashboardStats();
+        await loadGenerationModelOptionsFromKeys();
 
         // 初始化活动记录
         refreshActivities();
@@ -387,7 +956,7 @@ function getDashboardModels() {
 async function refreshCreditsBalance() {
     if (!DOM.creditsBalance) return;
 
-    if (!window.APIService || !window.APIService.apiKey) {
+    if (!window.APIService) {
         DOM.creditsBalance.textContent = '--';
         return;
     }
@@ -404,20 +973,14 @@ async function refreshCreditsBalance() {
 
 function updateDashboardKeyStatus() {
     if (!DOM.apiKeyStatusText) return;
-    const hasKey = window.APIService && window.APIService.apiKey;
+    const hasKey = !!AppState.hasKey;
     DOM.apiKeyStatusText.textContent = hasKey ? '已设置' : '未设置';
 }
 
 function updateDashboardHost() {
     if (!DOM.apiHostDisplay) return;
-    if (!window.APIService || !window.APIService.apiHost) {
-        DOM.apiHostDisplay.textContent = '--';
-        return;
-    }
-
-    const host = window.APIService.apiHost;
-    const isDomestic = host.includes('dakka.com.cn');
-    DOM.apiHostDisplay.textContent = isDomestic ? '国内直连' : '海外节点';
+    const host = (AppState.activeBaseUrl || AppState.apiHost || '').trim();
+    DOM.apiHostDisplay.textContent = host ? host : '--';
 }
 
 async function refreshModelStatuses() {
@@ -430,12 +993,10 @@ async function refreshModelStatuses() {
     }
 
     DOM.modelStatusList.innerHTML = '<div class="model-status-loading">正在获取模型状态...</div>';
-
-    if (!window.APIService || !window.APIService.apiKey) {
-        DOM.modelStatusList.innerHTML = '<div class="model-status-empty">请先设置 API Key</div>';
+    if (!AppState.hasKey) {
+        DOM.modelStatusList.innerHTML = '<div class="model-status-empty">请先在“API 设置”里添加 Key</div>';
         return;
     }
-
     const results = await Promise.all(models.map(async (model) => {
         try {
             const response = await window.APIService.getModelStatus(model.id);
@@ -661,37 +1222,57 @@ async function generateImage() {
     if (AppState.isLoading) return;
 
     // 检查API密钥
-    if (!window.APIService || !window.APIService.apiKey) {
-        ErrorHandler.handleValidationError('API密钥', '请先设置API密钥');
+    if (!AppState.hasKey) {
+        ErrorHandler.handleValidationError('API设置', '请先在“API 设置”页面添加 Key');
         showPage('api-keys');
         return;
     }
 
     AppState.isLoading = true;
+    const generationController = { cancelled: false, taskId: null };
+    AppState.currentGeneration = generationController;
     DOM.generateBtn.disabled = true;
     DOM.generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 生成中...';
 
     const prompt = DOM.promptInput.value;
-    const model = DOM.modelSelect ? DOM.modelSelect.value : 'nano-banana';
-    const aspectRatio = DOM.aspectRatioSelect ? DOM.aspectRatioSelect.value : 'auto';
-    const resolution = DOM.resolutionSelect ? DOM.resolutionSelect.value : '1K';
+    const textProvider = DOM.generationTextProviderSelect ? DOM.generationTextProviderSelect.value : 'grsai';
+    const imageProvider = DOM.generationImageProviderSelect ? DOM.generationImageProviderSelect.value : 'grsai';
+    const provider = imageProvider || textProvider || 'grsai';
+    const textModel = DOM.generationTextModelSelect ? DOM.generationTextModelSelect.value : 'gemini-2.5-pro';
+    const imageModel = DOM.generationImageModelSelect ? DOM.generationImageModelSelect.value : 'nano-banana-pro';
+    const workflowExpMode = DOM.generationExpModeSelect ? (DOM.generationExpModeSelect.value || '').trim() : '';
+    const workflowRetrieval = DOM.generationRetrievalSelect ? (DOM.generationRetrievalSelect.value || '').trim() : '';
+    const workflowCriticEnabled = DOM.generationCriticEnabledCheck ? !!DOM.generationCriticEnabledCheck.checked : true;
+    const workflowEvalEnabled = DOM.generationEvalEnabledCheck ? !!DOM.generationEvalEnabledCheck.checked : true;
+    const workflowCriticRoundsRaw = DOM.generationCriticRoundsInput ? Number(DOM.generationCriticRoundsInput.value) : 3;
+    const workflowCriticRounds = Number.isFinite(workflowCriticRoundsRaw)
+        ? Math.max(0, Math.min(10, Math.trunc(workflowCriticRoundsRaw)))
+        : 3;
 
     // 更新进度条
-    if (DOM.progressBar) {
-        DOM.progressBar.style.width = '10%';
-    }
-    if (DOM.progressText) {
-        DOM.progressText.textContent = '10%';
-    }
+    if (DOM.progressBar) DOM.progressBar.style.width = '10%';
+    if (DOM.progressText) DOM.progressText.textContent = '10%';
+    updatePaperStage('queued', '任务已提交，等待 PaperBanana 启动...', 'running');
 
     try {
         // 使用API服务生成图像
         const result = await window.APIService.generateImage(prompt, {
-            model,
-            aspectRatio,
-            imageSize: resolution,
+            model: 'nano-banana-pro',
+            provider,
+            textProvider,
+            imageProvider,
+            textModel,
+            imageModel,
+            expMode: workflowExpMode,
+            retrievalSetting: workflowRetrieval,
+            criticEnabled: workflowCriticEnabled,
+            evalEnabled: workflowEvalEnabled,
+            maxCriticRounds: workflowCriticEnabled ? workflowCriticRounds : 0,
+            aspectRatio: 'auto',
+            imageSize: '1K',
             urls: AppState.referenceImages.map((item) => item.dataUrl),
-            onProgress: (progress, message) => {
+            cancellation: generationController,
+            onProgress: (progress, message, payload) => {
                 // 更新进度条
                 if (DOM.progressBar) {
                     DOM.progressBar.style.width = `${progress}%`;
@@ -704,6 +1285,10 @@ async function generateImage() {
                 if (message) {
                     console.log('生成进度:', message);
                 }
+                if (payload && payload.id) {
+                    updatePaperTaskId(payload.id);
+                }
+                updatePaperStage(payload?.stage, payload?.stageMessage || message, payload?.status || 'running');
             },
             onComplete: (resultData) => {
                 // 处理生成结果
@@ -723,25 +1308,50 @@ async function generateImage() {
             throw new Error(result.message || '图像生成失败');
         }
     } catch (error) {
-        ErrorHandler.handleApiError(error, '图像生成');
+        const failedTaskId = AppState.currentGeneration && AppState.currentGeneration.taskId
+            ? AppState.currentGeneration.taskId
+            : '';
+        const taskIdFromError = (error && error.taskId) ? error.taskId : '';
+        const finalTaskId = taskIdFromError || failedTaskId;
+
+        if (error && error.isTimeout) {
+            AppState.isLoading = false;
+            AppState.currentGeneration = null;
+            DOM.generateBtn.disabled = false;
+            DOM.generateBtn.innerHTML = '<i class="fas fa-magic"></i> 生成图像';
+            if (DOM.progressBar) DOM.progressBar.style.width = '95%';
+            if (DOM.progressText) DOM.progressText.textContent = '95%';
+            updatePaperStage('processing', '轮询超时，任务仍在后台执行，请稍后查询结果', 'running');
+            updatePaperTaskId(finalTaskId);
+            showNotification(`任务仍在执行中，可稍后查询。任务ID：${finalTaskId || '未知'}`, 'warning');
+            return;
+        }
+
+        if (!(error && error.isCanceled)) {
+            ErrorHandler.handleApiError(error, '图像生成');
+        }
 
         // 重置UI状态
         AppState.isLoading = false;
+        AppState.currentGeneration = null;
         DOM.generateBtn.disabled = false;
         DOM.generateBtn.innerHTML = '<i class="fas fa-magic"></i> 生成图像';
 
-        if (DOM.progressBar) {
-            DOM.progressBar.style.width = '0%';
+        if (DOM.progressBar) DOM.progressBar.style.width = '0%';
+        if (DOM.progressText) DOM.progressText.textContent = '0%';
+        if (error && error.isCanceled) {
+            updatePaperStage('failed', '任务已取消', 'failed');
+        } else {
+            updatePaperStage('failed', error.message || '任务执行失败', 'failed');
         }
-        if (DOM.progressText) {
-            DOM.progressText.textContent = '0%';
-        }
+        updatePaperTaskId(finalTaskId);
     }
 }
 
 // 处理图像生成完成
 function handleImageGenerationComplete(resultData) {
     AppState.isLoading = false;
+    AppState.currentGeneration = null;
     DOM.generateBtn.disabled = false;
     DOM.generateBtn.innerHTML = '<i class="fas fa-magic"></i> 生成图像';
 
@@ -752,6 +1362,8 @@ function handleImageGenerationComplete(resultData) {
     if (DOM.progressText) {
         DOM.progressText.textContent = '100%';
     }
+    updatePaperStage(resultData.stage || 'completed', resultData.stageMessage || '图像生成完成', 'succeeded');
+    updatePaperTaskId(resultData && resultData.id ? resultData.id : '');
 
     // 启用下载按钮
     if (DOM.downloadBtn) {
@@ -811,12 +1423,68 @@ function handleImageGenerationComplete(resultData) {
     });
 }
 
+async function cancelCurrentGeneration() {
+    const current = AppState.currentGeneration;
+    if (!current) return;
+    current.cancelled = true;
+
+    const taskId = current.taskId;
+    if (taskId && window.APIService && typeof window.APIService.cancelImageTask === 'function') {
+        try {
+            await window.APIService.cancelImageTask(taskId);
+        } catch (error) {
+            console.warn('取消后端任务失败:', error);
+        }
+    }
+}
+
 // 重置图像表单
-function resetImageForm() {
+async function resetImageForm() {
+    if (AppState.isLoading) {
+        await cancelCurrentGeneration();
+    }
+
     if (DOM.promptInput) DOM.promptInput.value = '';
-    if (DOM.modelSelect) DOM.modelSelect.value = 'nano-banana';
-    if (DOM.aspectRatioSelect) DOM.aspectRatioSelect.value = 'auto';
-    if (DOM.resolutionSelect) DOM.resolutionSelect.value = '1K';
+    if (DOM.generationTextProviderSelect && DOM.generationTextProviderSelect.options.length > 0) {
+        DOM.generationTextProviderSelect.selectedIndex = 0;
+        localStorage.setItem('generationTextProvider', DOM.generationTextProviderSelect.value || 'grsai');
+    }
+    if (DOM.generationImageProviderSelect && DOM.generationImageProviderSelect.options.length > 0) {
+        DOM.generationImageProviderSelect.selectedIndex = 0;
+        localStorage.setItem('generationImageProvider', DOM.generationImageProviderSelect.value || 'grsai');
+    }
+    if (DOM.generationTextProviderSelect || DOM.generationImageProviderSelect) {
+        refreshGenerationModelOptions();
+    }
+    if (DOM.generationTextModelSelect && DOM.generationTextModelSelect.options.length > 0) {
+        DOM.generationTextModelSelect.selectedIndex = 0;
+    }
+    if (DOM.generationImageModelSelect && DOM.generationImageModelSelect.options.length > 0) {
+        DOM.generationImageModelSelect.selectedIndex = 0;
+    }
+    if (DOM.generationExpModeSelect) {
+        DOM.generationExpModeSelect.value = '';
+        localStorage.setItem('generationExpMode', '');
+    }
+    if (DOM.generationRetrievalSelect) {
+        DOM.generationRetrievalSelect.value = '';
+        localStorage.setItem('generationRetrieval', '');
+    }
+    if (DOM.generationCriticEnabledCheck) {
+        DOM.generationCriticEnabledCheck.checked = true;
+        localStorage.setItem('generationCriticEnabled', '1');
+    }
+    if (DOM.generationEvalEnabledCheck) {
+        DOM.generationEvalEnabledCheck.checked = true;
+        localStorage.setItem('generationEvalEnabled', '1');
+    }
+    if (DOM.generationCriticRoundsInput) {
+        DOM.generationCriticRoundsInput.value = '3';
+        DOM.generationCriticRoundsInput.disabled = false;
+        localStorage.setItem('generationCriticRounds', '3');
+    }
+    refreshGenerationWorkflowControlState();
+    updateWorkflowPreview(false);
     if (DOM.referenceImagesInput) DOM.referenceImagesInput.value = '';
     AppState.referenceImages = [];
     renderReferenceImages();
@@ -824,6 +1492,14 @@ function resetImageForm() {
     if (DOM.progressBar) DOM.progressBar.style.width = '0%';
     if (DOM.progressText) DOM.progressText.textContent = '0%';
     if (DOM.downloadBtn) DOM.downloadBtn.disabled = true;
+    updatePaperStage('queued', '提交任务后会显示 PaperBanana 当前处理阶段。', 'idle');
+    updatePaperTaskId('');
+    AppState.isLoading = false;
+    AppState.currentGeneration = null;
+    if (DOM.generateBtn) {
+        DOM.generateBtn.disabled = false;
+        DOM.generateBtn.innerHTML = '<i class="fas fa-magic"></i> 生成图像';
+    }
 
     const previewContainer = document.querySelector('.preview-container');
     if (previewContainer) {
@@ -851,8 +1527,8 @@ async function sendMessage() {
     if (!message) return;
 
     // 检查API密钥
-    if (!window.APIService || !window.APIService.apiKey) {
-        ErrorHandler.handleValidationError('API密钥', '请先设置API密钥');
+    if (!AppState.hasKey) {
+        ErrorHandler.handleValidationError('API设置', '请先在“API 设置”页面添加 Key');
         showPage('api-keys');
         return;
     }
@@ -1097,13 +1773,14 @@ function clearChat() {
     createNewChat();
 }
 
-// 加载API密钥
-function loadApiKeys() {
+// 加载API密钥（后端加密存储，支持多提供商）
+async function loadApiKeys() {
     if (!DOM.keysTableBody) return;
 
+    const colCount = 5;
     DOM.keysTableBody.innerHTML = `
         <tr>
-            <td colspan="5" class="text-center py-8">
+            <td colspan="${colCount}" class="text-center py-8">
                 <div class="loading">
                     <div class="loading-spinner"></div>
                     <div class="loading-text">加载中...</div>
@@ -1112,263 +1789,176 @@ function loadApiKeys() {
         </tr>
     `;
 
-    // 从localStorage加载密钥
-    setTimeout(() => {
-        const keys = JSON.parse(localStorage.getItem('apiKeys') || '[]');
-        const currentKey = window.APIService ? window.APIService.apiKey : null;
-
-        if (keys.length === 0) {
-            DOM.keysTableBody.innerHTML = `
-                <tr>
-                    <td colspan="5" class="text-center py-8">
-                        <div class="text-tertiary">
-                            <i class="fas fa-key fa-2x mb-3"></i>
-                            <p>暂无API密钥</p>
-                            <p class="text-sm">请在下方添加您的API密钥</p>
-                        </div>
-                    </td>
-                </tr>
-            `;
-            return;
+    try {
+        const res = await fetch('/api/keys', { method: 'GET', credentials: 'same-origin' });
+        const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data.error || data.message || '加载失败');
         }
 
-        DOM.keysTableBody.innerHTML = keys.map(key => {
-            const isCurrent = currentKey === key.fullKey;
-            const maskedKey = key.key || (key.fullKey ? key.fullKey.substring(0, 8) + '...' + key.fullKey.substring(key.fullKey.length - 4) : 'sk-***');
+        // 更新状态区
+        const anyActive = data && data.keys && data.keys.some(k => k && k.isActive);
+        AppState.keyStore = data;
+        refreshGenerationModelOptions(data);
+        syncApiKeyBaseUrlByProvider();
+        if (DOM.currentKeyStatus) {
+            DOM.currentKeyStatus.textContent = anyActive ? '已设置' : '未设置';
+            DOM.currentKeyStatus.className = anyActive ? 'badge badge-success' : 'badge badge-secondary';
+        }
 
-            return `
-                <tr>
-                    <td>
-                        ${escapeHtml(key.name || '未命名密钥')}
-                        ${isCurrent ? '<span class="badge badge-primary badge-sm ml-2">当前</span>' : ''}
-                    </td>
-                    <td><code class="key-masked">${escapeHtml(maskedKey)}</code></td>
-                    <td>${escapeHtml(key.source || '手动添加')}</td>
-                    <td>
-                        <span class="badge ${key.status === 'active' ? 'badge-success' : 'badge-secondary'}">
-                            ${key.status === 'active' ? '活跃' : '未激活'}
-                        </span>
-                    </td>
-                    <td>
-                        <div class="key-actions">
-                            <button class="btn btn-icon btn-sm ${isCurrent ? 'btn-primary' : ''}" title="${isCurrent ? '当前密钥' : '设为当前'}" onclick="setCurrentKey('${escapeHtml(key.fullKey)}')" ${isCurrent ? 'disabled' : ''}>
-                                <i class="fas fa-check"></i>
-                            </button>
-                            <button class="btn btn-icon btn-sm" title="测试" onclick="testSpecificKey('${escapeHtml(key.fullKey)}')">
-                                <i class="fas fa-vial"></i>
-                            </button>
-                            <button class="btn btn-icon btn-sm btn-danger" title="删除" onclick="deleteApiKey('${escapeHtml(key.fullKey)}')">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `;
-        }).join('');
-    }, 300);
-}
-
-// 设为当前密钥
-function setCurrentKey(fullKey) {
-    if (!fullKey) return;
-
-    if (window.APIService) {
-        window.APIService.setApiKey(fullKey);
-        ErrorHandler.handleSuccess('已设为当前API密钥', 'API密钥管理');
-        loadApiKeys();
-        loadInitialData();
+        renderApiKeysTable(data);
+    } catch (e) {
+        DOM.keysTableBody.innerHTML = `
+            <tr>
+                <td colspan="${colCount}" class="text-center py-8">
+                    <div class="text-tertiary">
+                        <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                        <p>加载失败</p>
+                        <p class="text-sm">${escapeHtml(e.message || '未知错误')}</p>
+                    </div>
+                </td>
+            </tr>
+        `;
     }
 }
 
-// 测试特定密钥
-async function testSpecificKey(fullKey) {
-    if (!fullKey) return;
+function renderApiKeysTable(store) {
+    if (!DOM.keysTableBody) return;
 
-    showNotification('正在测试API密钥...', 'info');
+    const keys = (store && store.keys) ? store.keys : [];
+    if (!keys.length) {
+        DOM.keysTableBody.innerHTML = `
+            <tr class="keys-empty">
+                <td colspan="5" class="text-center py-8">
+                    <i class="fas fa-key text-3xl text-tertiary mb-2"></i>
+                    <p class="text-tertiary">暂无 API 密钥</p>
+                    <p class="text-sm text-muted">添加您的第一个 API 密钥以开始使用</p>
+                </td>
+            </tr>
+        `;
+        return;
+    }
 
+    DOM.keysTableBody.innerHTML = keys.map(key => {
+        const provider = key.provider || 'grsai';
+        const name = key.name || '';
+        const baseUrl = key.baseUrl || '';
+        const baseUrlShort = baseUrl && baseUrl.length > 32 ? baseUrl.slice(0, 32) + '…' : baseUrl;
+
+        return `
+            <tr>
+                <td>
+                    <span class="badge badge-secondary">${escapeHtml(provider)}</span>
+                </td>
+                <td>
+                    ${escapeHtml(name || '未命名')}
+                    ${key.isActive ? '<span class="badge badge-primary badge-sm ml-2">当前</span>' : ''}
+                </td>
+                <td><code class="key-masked">${escapeHtml(key.mask || '***')}</code></td>
+                <td title="${escapeHtml(baseUrl)}">${escapeHtml(baseUrlShort || '--')}</td>
+                <td>
+                    <div class="key-actions">
+                        <button class="btn btn-icon btn-sm ${key.isActive ? 'btn-primary' : ''}" title="${key.isActive ? '当前密钥' : '设为当前'}" onclick="setActiveKey('${escapeHtml(key.id)}')" ${key.isActive ? 'disabled' : ''}>
+                            <i class="fas fa-check"></i>
+                        </button>
+                        <button class="btn btn-icon btn-sm btn-danger" title="删除" onclick="deleteApiKeyById('${escapeHtml(key.id)}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// 设为当前密钥（按 provider 生效）
+async function setActiveKey(keyId) {
+    if (!keyId) return;
     try {
-        const originalKey = window.APIService ? window.APIService.apiKey : null;
-
-        if (window.APIService) {
-            window.APIService.setApiKey(fullKey);
-            const testResult = await window.APIService.testApiKey();
-
-            // 恢复原始密钥
-            if (originalKey) {
-                window.APIService.setApiKey(originalKey);
-            } else {
-                window.APIService.apiKey = null;
-                localStorage.removeItem('apiKey');
-            }
-
-            if (testResult.success) {
-                ErrorHandler.handleSuccess('API密钥测试成功', 'API密钥测试');
-
-                // 更新密钥状态
-                updateKeyStatus(fullKey, 'active');
-            } else {
-                throw new Error(testResult.message);
-            }
-        }
-    } catch (error) {
-        const errorResult = ErrorHandler.handleApiError(error, '测试API密钥');
-        updateKeyStatus(fullKey, 'inactive');
+        const res = await fetch('/api/keys/active', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: keyId })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || data.message || '设置失败');
+        ErrorHandler.handleSuccess('已设为当前（该提供商）', 'API密钥管理');
+        await loadApiKeys();
+        loadInitialData();
+    } catch (e) {
+        ErrorHandler.handleApiError(e, '设为当前密钥');
     }
 }
 
 // 删除API密钥
-function deleteApiKey(fullKey) {
-    if (!fullKey || !confirm('确定要删除这个API密钥吗？')) return;
-
-    const keys = JSON.parse(localStorage.getItem('apiKeys') || '[]');
-    const filteredKeys = keys.filter(k => k.fullKey !== fullKey);
-
-    localStorage.setItem('apiKeys', JSON.stringify(filteredKeys));
-
-    // 如果删除的是当前密钥，清除当前密钥
-    if (window.APIService && window.APIService.apiKey === fullKey) {
-        window.APIService.apiKey = null;
-        localStorage.removeItem('apiKey');
-        ErrorHandler.handleSuccess('已删除当前API密钥', 'API密钥删除');
-    } else {
+async function deleteApiKeyById(keyId) {
+    if (!keyId || !confirm('确定要删除这个API密钥吗？')) return;
+    try {
+        const res = await fetch(`/api/keys/${encodeURIComponent(keyId)}`, {
+            method: 'DELETE',
+            credentials: 'same-origin'
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || data.message || '删除失败');
         ErrorHandler.handleSuccess('API密钥已删除', 'API密钥删除');
-    }
-
-    loadApiKeys();
-    loadInitialData();
-}
-
-// 更新密钥状态
-function updateKeyStatus(fullKey, status) {
-    const keys = JSON.parse(localStorage.getItem('apiKeys') || '[]');
-    const keyIndex = keys.findIndex(k => k.fullKey === fullKey);
-
-    if (keyIndex >= 0) {
-        keys[keyIndex].status = status;
-        keys[keyIndex].lastTested = new Date().toISOString();
-        localStorage.setItem('apiKeys', JSON.stringify(keys));
-        loadApiKeys();
+        await loadApiKeys();
+        loadInitialData();
+    } catch (e) {
+        ErrorHandler.handleApiError(e, '删除API密钥');
     }
 }
 
 // 添加API密钥
 async function addApiKey() {
+    const providerEl = document.getElementById('apiKeyProvider');
+    const baseUrlEl = document.getElementById('apiKeyBaseUrl');
+
+    const provider = providerEl ? providerEl.value : 'grsai';
     const key = DOM.newApiKey ? DOM.newApiKey.value.trim() : '';
     const name = DOM.keyName ? DOM.keyName.value.trim() : '';
+    const baseUrl = baseUrlEl ? baseUrlEl.value.trim() : '';
 
     if (!key) {
-        ErrorHandler.handleValidationError('API密钥', '请输入API密钥');
+        ErrorHandler.handleValidationError('API密钥', '请输入 API 密钥');
         if (DOM.newApiKey) DOM.newApiKey.focus();
-        return;
-    }
-
-    if (!key.startsWith('sk-')) {
-        ErrorHandler.handleValidationError('API密钥', 'API密钥应以 "sk-" 开头');
         return;
     }
 
     showNotification('正在添加API密钥...', 'info');
 
     try {
-        // 设置API密钥
-        if (window.APIService) {
-            window.APIService.setApiKey(key);
+        const res = await fetch('/api/keys', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ provider, value: key, name, baseUrl })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || data.message || '添加失败');
 
-            // 测试密钥
-            const testResult = await window.APIService.testApiKey();
+        if (DOM.newApiKey) DOM.newApiKey.value = '';
+        if (DOM.keyName) DOM.keyName.value = '';
+        syncApiKeyBaseUrlByProvider();
 
-            if (testResult.success) {
-                // 清空表单
-                if (DOM.newApiKey) DOM.newApiKey.value = '';
-                if (DOM.keyName) DOM.keyName.value = '';
+        ErrorHandler.handleSuccess('API密钥已添加并设为当前（该提供商）', 'API密钥管理');
+        await loadApiKeys();
+        loadInitialData();
 
-                // 保存密钥信息
-                const keyInfo = {
-                    name: name || '未命名密钥',
-                    key: key.substring(0, 8) + '...' + key.substring(key.length - 4),
-                    fullKey: key,
-                    addedAt: new Date().toISOString(),
-                    lastTested: new Date().toISOString(),
-                    status: 'active'
-                };
-
-                saveApiKeyInfo(keyInfo);
-
-                ErrorHandler.handleSuccess('API密钥添加并测试成功', 'API密钥管理');
-                loadApiKeys();
-                loadInitialData(); // 刷新状态显示
-
-                // 添加到活动记录
-                addActivity({
-                    icon: 'fa-key',
-                    title: 'API密钥已添加',
-                    description: name || '新API密钥',
-                    time: '刚刚'
-                });
-            } else {
-                throw new Error(testResult.message);
-            }
-        } else {
-            throw new Error('API服务未初始化');
-        }
-    } catch (error) {
-        ErrorHandler.handleApiError(error, '添加API密钥');
+        addActivity({
+            icon: 'fa-key',
+            title: 'API密钥已添加',
+            description: (name || provider || '新API密钥'),
+            time: '刚刚'
+        });
+    } catch (e) {
+        ErrorHandler.handleApiError(e, '添加API密钥');
     }
 }
 
-// 保存API密钥信息
-function saveApiKeyInfo(keyInfo) {
-    const keys = JSON.parse(localStorage.getItem('apiKeys') || '[]');
-
-    // 检查是否已存在相同密钥
-    const existingIndex = keys.findIndex(k => k.fullKey === keyInfo.fullKey);
-    if (existingIndex >= 0) {
-        keys[existingIndex] = keyInfo;
-    } else {
-        keys.push(keyInfo);
-    }
-
-    localStorage.setItem('apiKeys', JSON.stringify(keys));
-}
-
-// 测试API密钥
+// 测试API密钥（暂不直接在前端暴露 Key；建议添加后通过聊天/生成验证）
 async function testApiKey() {
-    const key = DOM.newApiKey ? DOM.newApiKey.value.trim() : '';
-
-    if (!key) {
-        ErrorHandler.handleValidationError('API密钥', '请输入要测试的API密钥');
-        return;
-    }
-
-    showNotification('正在测试API密钥...', 'info');
-
-    try {
-        // 临时设置API密钥进行测试
-        const originalKey = window.APIService ? window.APIService.apiKey : null;
-
-        if (window.APIService) {
-            window.APIService.setApiKey(key);
-            const testResult = await window.APIService.testApiKey();
-
-            // 恢复原始密钥
-            if (originalKey) {
-                window.APIService.setApiKey(originalKey);
-            } else {
-                window.APIService.apiKey = null;
-                localStorage.removeItem('apiKey');
-            }
-
-            if (testResult.success) {
-                ErrorHandler.handleSuccess('API密钥测试成功', 'API密钥测试');
-            } else {
-                throw new Error(testResult.message);
-            }
-        } else {
-            throw new Error('API服务未初始化');
-        }
-    } catch (error) {
-        ErrorHandler.handleApiError(error, '测试API密钥');
-    }
+    ErrorHandler.handleValidationError('API密钥', '请先添加密钥；本地模式下将由后端使用并验证。');
 }
 
 // 刷新API密钥
@@ -1376,6 +1966,7 @@ function refreshApiKeys() {
     loadApiKeys();
     ErrorHandler.handleSuccess('API密钥列表已刷新', 'API密钥管理');
 }
+
 
 // 加载设置
 function loadSettings() {
@@ -1392,9 +1983,17 @@ function loadSettings() {
 
     // 加载API主机设置
     const apiHostSelect = document.getElementById('apiHostSelect');
+    const apiHostCustomInput = document.getElementById('apiHostCustomInput');
     if (apiHostSelect) {
-        const savedHost = localStorage.getItem('apiHost') || 'https://api.grsai.com';
-        apiHostSelect.value = savedHost;
+        const savedHost = localStorage.getItem('apiHost') || 'https://grsaiapi.com';
+        const hasOption = Array.from(apiHostSelect.options).some((opt) => opt.value === savedHost);
+        if (hasOption) {
+            apiHostSelect.value = savedHost;
+            if (apiHostCustomInput) apiHostCustomInput.value = '';
+        } else {
+            apiHostSelect.value = 'custom';
+            if (apiHostCustomInput) apiHostCustomInput.value = savedHost;
+        }
 
         // 更新API服务的主机
         if (window.APIService) {
@@ -1414,12 +2013,7 @@ function loadSettings() {
     }
 
     // 加载模型选择
-    const imageModelSelect = document.getElementById('imageModelSelect');
     const chatModelSelect = document.getElementById('chatModelSelect');
-
-    if (imageModelSelect && window.APIService) {
-        imageModelSelect.value = window.APIService.activeImageModel;
-    }
 
     if (chatModelSelect && window.APIService) {
         chatModelSelect.value = window.APIService.activeChatModel;
@@ -1437,12 +2031,16 @@ function saveSettings() {
 
     // 保存API主机设置
     const apiHostSelect = document.getElementById('apiHostSelect');
+    const apiHostCustomInput = document.getElementById('apiHostCustomInput');
     if (apiHostSelect) {
-        const selectedHost = apiHostSelect.value;
-        localStorage.setItem('apiHost', selectedHost);
+        const selectedHost = apiHostSelect.value === 'custom'
+            ? String(apiHostCustomInput ? apiHostCustomInput.value : '').trim()
+            : apiHostSelect.value;
+        const finalHost = selectedHost || 'https://grsaiapi.com';
+        localStorage.setItem('apiHost', finalHost);
 
         if (window.APIService) {
-            window.APIService.setApiHost(selectedHost);
+            window.APIService.setApiHost(finalHost);
         }
     }
 
@@ -1458,14 +2056,7 @@ function saveSettings() {
     }
 
     // 保存模型选择
-    const imageModelSelect = document.getElementById('imageModelSelect');
     const chatModelSelect = document.getElementById('chatModelSelect');
-
-    if (imageModelSelect && window.APIService) {
-        const selectedModel = imageModelSelect.value;
-        window.APIService.activeImageModel = selectedModel;
-        localStorage.setItem('activeImageModel', selectedModel);
-    }
 
     if (chatModelSelect && window.APIService) {
         const selectedModel = chatModelSelect.value;
@@ -1831,7 +2422,8 @@ function initScreenshotTool() {
 
     if (!screenshotBtn) return;
 
-    // 加载设置
+    
+// 加载设置
     const settings = JSON.parse(localStorage.getItem('toolbox_screenshot_settings') || '{"shortcut": "", "autoCopy": true}');
     if (shortcutInput) shortcutInput.value = settings.shortcut;
     if (autoCopyCheckbox) autoCopyCheckbox.checked = settings.autoCopy;
@@ -2104,3 +2696,21 @@ window.App = {
     addActivity,
     updateDashboardStats
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

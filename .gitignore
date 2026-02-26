@@ -33,15 +33,17 @@ ehthumbs.db
 Thumbs.db
 
 # Application data
-data/
+data/**
 backup/
 *.db
 *.sqlite
 *.sqlite3
+!data/.gitkeep
 
 # Logs
 *.log
-logs/
+logs/**
+!logs/.gitkeep
 
 # Temporary files
 *.tmp
@@ -52,3 +54,14 @@ test-output/
 coverage/
 .pytest_cache/
 .mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Node / desktop
+electron/node_modules/
+node_modules/
+
+# Build artifacts
+build/
+dist/

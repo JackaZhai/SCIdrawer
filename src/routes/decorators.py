@@ -1,10 +1,11 @@
 """
 路由装饰器
 """
-from functools import wraps
-from typing import Callable, Any
 
-from flask import redirect, request, url_for, jsonify
+from functools import wraps
+from typing import Any, Callable
+
+from flask import jsonify, redirect, request, url_for
 
 from ..services.auth import get_auth_service
 from ..utils.errors import ApiError
@@ -45,9 +46,10 @@ def handle_api_errors(view_func: Callable) -> Callable:
             return view_func(*args, **kwargs)
         except ApiError as exc:
             return jsonify(exc.to_dict()), exc.status_code
-        except Exception as exc:
+        except Exception:
             # 记录未预期的错误
             import traceback
+
             traceback.print_exc()
             return jsonify({"error": "服务器内部错误"}), 500
 

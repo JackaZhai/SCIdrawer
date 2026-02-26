@@ -1,4 +1,4 @@
-# a.zhai's ToolBox 用户手册
+# SCIdrawer 用户手册
 
 本文档用于说明平台的功能模块与使用方法。
 

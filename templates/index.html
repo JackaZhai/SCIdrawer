@@ -1,16 +1,17 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>控制台 | a.zhai's ToolBox</title>
+    <title>控制台 | SCIdrawer</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mono.css') }}">
     <!-- Favicon -->
-    <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
-    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
+    <link rel="icon" href="{{ url_for('static', filename='app-icon.png') }}" type="image/png">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='app-icon.png') }}" type="image/png">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/font-awesome.min.css') }}">
     <style>
         /* Fallback for Font Awesome icons */
@@ -26,11 +27,11 @@
             <div class="sidebar-header">
                 <a href="#" class="sidebar-brand">
                     <div class="brand-logo">
-                        <i class="fas fa-brain"></i>
+                        <img src="{{ url_for('static', filename='app-icon.png') }}" alt="SCIdrawer Logo" class="brand-logo-image">
                     </div>
                     <div class="brand-text">
-                        <div class="brand-title">a.zhai's ToolBox</div>
-                        <div class="brand-subtitle">ToolBox</div>
+                        <div class="brand-title">SCIdrawer</div>
+        
                     </div>
                 </a>
             </div>
@@ -38,23 +39,19 @@
             <nav class="sidebar-nav">
                 <a href="#" class="nav-item active" data-page="dashboard">
                     <i class="fas fa-home nav-icon"></i>
-                    <span class="nav-label">仪表盘</span>
+                    <span class="nav-label">工作台</span>
                 </a>
                 <a href="#" class="nav-item" data-page="image-generation">
                     <i class="fas fa-palette nav-icon"></i>
                     <span class="nav-label">图像生成</span>
                 </a>
-                <a href="#" class="nav-item" data-page="chat">
-                    <i class="fas fa-comments nav-icon"></i>
-                    <span class="nav-label">智能对话</span>
-                </a>
                 <a href="#" class="nav-item" data-page="api-keys">
                     <i class="fas fa-key nav-icon"></i>
-                    <span class="nav-label">API 密钥</span>
+                    <span class="nav-label">API 设置</span>
                 </a>
-                <a href="#" class="nav-item" data-page="toolbox">
-                    <i class="fas fa-tools nav-icon"></i>
-                    <span class="nav-label">工具箱</span>
+<a href="#" class="nav-item" data-page="edit-banana">
+                    <i class="fas fa-diagram-project nav-icon"></i>
+                    <span class="nav-label">Edit Banana</span>
                 </a>
                 <a href="#" class="nav-item" data-page="settings">
                     <i class="fas fa-cog nav-icon"></i>
@@ -62,18 +59,6 @@
                 </a>
             </nav>
 
-            <div class="sidebar-footer">
-                <div class="user-menu">
-                    <div class="user-avatar">
-                        <i class="fas fa-user"></i>
-                    </div>
-                    <div class="user-info">
-                        <div class="user-name">管理员</div>
-                        <div class="user-email">admin@nanobanana.ai</div>
-                    </div>
-                    <div class="user-status">在线</div>
-                </div>
-            </div>
         </aside>
 
         <!-- 主内容区 -->
@@ -82,8 +67,7 @@
             <header class="topbar">
                 <div class="topbar-left">
                     <div class="page-title">
-                        <h1 id="pageTitle">仪表盘</h1>
-                        <p class="page-subtitle" id="pageSubtitle">欢迎使用 a.zhai's ToolBox 服务平台</p>
+                        <h1 id="pageTitle">工作台</h1>
                     </div>
                 </div>
 
@@ -92,6 +76,18 @@
                         <button class="action-button" id="themeToggle" title="切换主题">
                             <i class="fas fa-moon"></i>
                         </button>
+
+                        <div class="window-controls" id="windowControls" aria-label="Window controls">
+                            <button class="win-btn" id="winMinBtn" title="最小化" type="button">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <button class="win-btn" id="winMaxBtn" title="最大化/还原" type="button">
+                                <i class="fas fa-square"></i>
+                            </button>
+                            <button class="win-btn win-close" id="winCloseBtn" title="关闭" type="button">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </header>
@@ -99,11 +95,28 @@
             <!-- 页面内容 -->
             <div class="page-content">
                 <!-- 仪表盘页面 -->
-                <div class="page-section active" id="page-dashboard">
+                <!-- <div class="page-section active" id="page-dashboard">
                     <div class="dashboard">
-                        <div class="content-card-header">
-                            <h2 class="content-card-title">概览</h2>
-                        </div>
+                        <div class="welcome-banner">
+                            <div class="welcome-content">
+                                <h2 class="welcome-title">SCIdrawer 科研绘图工作台</h2>
+                                <p class="welcome-subtitle">
+                                    面向 SCI 论文场景的 AI 绘图平台。建议流程：先用模板起草提示词，再选模型生成，最后基于活动记录迭代优化。
+                                </p>
+                                <div class="quick-actions">
+                                    <a href="#" class="quick-action" data-target="image-generation">
+                                        <div class="quick-action-icon"><i class="fas fa-rocket"></i></div>
+                                        <h4 class="quick-action-title">开始生成</h4>
+                                        <p class="quick-action-description">进入图像生成页，直接使用提示词生成论文插图。</p>
+                                    </a>
+                                    <a href="#" class="quick-action" data-target="api-keys">
+                                        <div class="quick-action-icon"><i class="fas fa-key"></i></div>
+                                        <h4 class="quick-action-title">配置 API</h4>
+                                        <p class="quick-action-description">先配置密钥和节点，确保模型可用后再批量出图。</p>
+                                    </a>
+                                </div>
+                            </div>
+                        </div> -->
 
                         <div class="stats-grid">
                             <div class="stat-card">
@@ -120,12 +133,62 @@
                                 <div class="stat-value" id="apiKeyStatus">检查中...</div>
                                 <div class="stat-label">API Key</div>
                             </div>
-                            <div class="stat-card">
-                                <div class="stat-icon">
-                                    <i class="fas fa-server"></i>
+                        </div>
+
+                        <div class="dashboard-panels">
+                            <div class="content-card">
+                                <div class="content-card-header">
+                                    <h3 class="content-card-title">推荐工作流</h3>
                                 </div>
-                                <div class="stat-value" id="apiHostDisplay">--</div>
-                                <div class="stat-label">API 节点</div>
+                                <div class="content-card-body">
+                                    <div class="workflow-list">
+                                        <div class="workflow-item">
+                                            <div class="workflow-index">01</div>
+                                            <div>
+                                                <div class="workflow-title">明确图类型</div>
+                                                <div class="workflow-desc">先定义机制图、流程图或对比图，减少提示词歧义。</div>
+                                            </div>
+                                        </div>
+                                        <div class="workflow-item">
+                                            <div class="workflow-index">02</div>
+                                            <div>
+                                                <div class="workflow-title">套用模板提示词</div>
+                                                <div class="workflow-desc">使用下方模板快速起稿，再按领域术语精修。</div>
+                                            </div>
+                                        </div>
+                                        <div class="workflow-item">
+                                            <div class="workflow-index">03</div>
+                                            <div>
+                                                <div class="workflow-title">多轮审图迭代</div>
+                                                <div class="workflow-desc">开启 critic + eval，追踪活动记录对比版本改进。</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="prompt-chips">
+                                        <button type="button" class="prompt-chip" data-fill-prompt="Create a mechanism diagram for oxidative stress in neuronal aging. Include mitochondria, ROS accumulation, DNA damage response, and downstream inflammation pathways. Use a clean white background, journal-ready style, English labels, and clear directional arrows.">
+                                            机制图模板
+                                        </button>
+                                        <button type="button" class="prompt-chip" data-fill-prompt="Create a two-column comparison figure between CRISPR-Cas9 and base editing. Compare editing principle, off-target risk, delivery constraints, and suitable applications. Use concise English labels and balanced spacing.">
+                                            对比图模板
+                                        </button>
+                                        <button type="button" class="prompt-chip" data-fill-prompt="Design a workflow diagram for single-cell RNA-seq analysis from raw FASTQ to cell annotation and differential expression. Show each stage as a module with arrows and include key QC checkpoints.">
+                                            流程图模板
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="content-card">
+                                <div class="content-card-header">
+                                    <h3 class="content-card-title">最近活动</h3>
+                                    <button class="btn btn-ghost btn-sm" id="refreshActivities">
+                                        <i class="fas fa-sync-alt"></i>
+                                        刷新
+                                    </button>
+                                </div>
+                                <div class="content-card-body">
+                                    <div class="activity-list" id="activitiesList"></div>
+                                </div>
                             </div>
                         </div>
 
@@ -146,60 +209,114 @@
 
                 <div class="page-section" id="page-image-generation">
                     <div class="image-generation">
-                        <div class="content-card-header">
-                            <h2 class="content-card-title">AI 图像生成</h2>
-                        </div>
-
                         <div class="generation-layout">
                             <!-- 参数面板 -->
                             <div class="parameters-panel">
-                                <div class="parameter-group">
-                                    <label class="parameter-label">
+                                <div class="panel-title-row">
+                                    <h3 class="content-card-title">生成参数</h3>
+                                    <span class="panel-title-tip">先写提示词，再选模型</span>
+                                </div>
+
+                                <div class="parameter-section">
+                                    <div class="section-head">
+                                        <i class="fas fa-pen-nib"></i>
                                         <span>提示词</span>
                                         <span class="required">*</span>
+                                    </div>
+                                    <textarea id="promptInput" class="form-textarea prompt-editor"
+                                              placeholder="例如：设计一张流程图，展示用户登录后的权限分流逻辑，包含管理员、编辑者、访客三类角色，使用简洁现代风格"
+                                              rows="6"></textarea>
+                                    <div class="parameter-hint">尽量包含主体、风格、细节和构图要求。</div>
+                                </div>
+
+                                <div class="parameter-section model-section" id="generationModelSection">
+                                    <div class="section-head">
+                                        <i class="fas fa-sliders"></i>
+                                        <span>模型</span>
+                                    </div>
+                                    <div class="parameter-grid-2">
+                                        <div class="form-group">
+                                            <label class="form-label">语言供应商</label>
+                                            <select id="generationTextProviderSelect" class="form-select">
+                                                <option value="grsai">grsai</option>
+                                            </select>
+                                            <label class="form-label" style="margin-top: 0.5rem;">语言模型</label>
+                                            <select id="generationTextModelSelect" class="form-select">
+                                                <option value="gpt-4o-mini">gpt-4o-mini</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">图像供应商</label>
+                                            <select id="generationImageProviderSelect" class="form-select">
+                                                <option value="grsai">grsai</option>
+                                            </select>
+                                            <label class="form-label" style="margin-top: 0.5rem;">图像生成模型</label>
+                                            <select id="generationImageModelSelect" class="form-select">
+                                                <option value="nano-banana-pro">nano-banana-pro</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="parameter-grid-2" style="margin-top: 0.75rem;">
+                                        <div class="form-group">
+                                            <label class="form-label">PaperBanana 流程</label>
+                                            <select id="generationExpModeSelect" class="form-select">
+                                                <option value="">自动（推荐：Full）</option>
+                                                <option value="dev_full">Full: 检索+规划+风格+生图+审图+评估</option>
+                                                <option value="dev_planner_stylist">Planner+Stylist+生图</option>
+                                                <option value="dev_planner_critic">Planner+生图+审图</option>
+                                                <option value="dev_planner">Planner+生图</option>
+                                                <option value="vanilla">Vanilla: 直接生图</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">检索策略</label>
+                                            <select id="generationRetrievalSelect" class="form-select">
+                                                <option value="">默认</option>
+                                                <option value="none">none（关闭检索）</option>
+                                                <option value="manual">manual（手动样例）</option>
+                                                <option value="semantic">semantic（语义检索）</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="parameter-grid-2" style="margin-top: 0.5rem;">
+                                        <div class="form-group">
+                                            <label class="form-label">审图轮数（critic）</label>
+                                            <input id="generationCriticRoundsInput" class="form-input" type="number" min="0" max="10" step="1" value="3" />
+                                            <div class="form-hint">0 表示关闭审图；仅在包含 critic 的流程里生效。</div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">流程开关</label>
+                                            <label class="checkbox-label" style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.5rem;">
+                                                <input type="checkbox" id="generationCriticEnabledCheck" checked />
+                                                <span>启用审图迭代（critic）</span>
+                                            </label>
+                                            <label class="checkbox-label" style="display:flex;gap:0.5rem;align-items:center;">
+                                                <input type="checkbox" id="generationEvalEnabledCheck" checked />
+                                                <span>启用评估（eval）</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="parameter-hint workflow-summary" id="generationWorkflowSummary">
+                                        当前流程预览：完整流程（含审图与评估）
+                                    </div>
+                                    <div class="parameter-hint">模型列表按已激活密钥自动筛选。</div>
+                                </div>
+
+                                <div class="parameter-section">
+                                    <div class="section-head">
+                                        <i class="fas fa-images"></i>
+                                        <span>参考图</span>
+                                    </div>
+                                    <label class="upload-box" for="referenceImagesInput">
+                                        <i class="fas fa-upload"></i>
+                                        <span>点击或拖拽上传参考图</span>
                                     </label>
-                                    <textarea id="promptInput" class="form-textarea"
-                                              placeholder="描述您想要生成的图像，例如：一只科幻机械猫站在霓虹城市中央，蓝紫色光影，超写实"
-                                              rows="4"></textarea>
-                                    <div class="parameter-hint">尽可能详细地描述您想要的图像</div>
-                                </div>
-
-                                <div class="parameter-group">
-                                    <label class="parameter-label">模型选择</label>
-                                    <select id="modelSelect" class="form-select">
-                                        <option value="nano-banana-fast">nano-banana-fast (极速)</option>
-                                        <option value="nano-banana">nano-banana (标准)</option>
-                                        <option value="nano-banana-pro">nano-banana-pro (高质量)</option>
-                                    </select>
-                                </div>
-
-                                <div class="parameter-group">
-                                    <label class="parameter-label">画面比例</label>
-                                    <select id="aspectRatioSelect" class="form-select">
-                                        <option value="auto">自动</option>
-                                        <option value="1:1">1:1 (正方形)</option>
-                                        <option value="16:9">16:9 (宽屏)</option>
-                                        <option value="9:16">9:16 (竖屏)</option>
-                                    </select>
-                                </div>
-
-                                <div class="parameter-group">
-                                    <label class="parameter-label">分辨率</label>
-                                    <select id="resolutionSelect" class="form-select">
-                                        <option value="1K">1K (1024×1024)</option>
-                                        <option value="2K">2K (2048×2048)</option>
-                                        <option value="4K">4K (4096×4096)</option>
-                                    </select>
-                                </div>
-
-                                <div class="parameter-group">
-                                    <label class="parameter-label">参考图</label>
                                     <input type="file" id="referenceImagesInput" class="form-input" accept="image/*" multiple>
                                     <div class="parameter-hint">最多 3 张，每张不超过 5MB。</div>
                                     <div class="reference-list" id="referenceImagesList"></div>
                                 </div>
 
-                                <div class="form-actions">
+                                <div class="form-actions action-dock">
                                     <button class="btn btn-primary btn-lg" id="generateBtn">
                                         <i class="fas fa-magic"></i>
                                         生成图像
@@ -224,11 +341,33 @@
                                 </div>
 
                                 <div class="generation-controls">
-                                    <div class="control-group">
-                                        <div class="progress">
-                                            <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+                                    <div class="paper-status">
+                                        <div class="paper-status-header">
+                                            <span class="paper-status-title" id="paperStageTitle">等待开始</span>
+                                            <span class="paper-status-chip" id="paperStageChip">未开始</span>
                                         </div>
-                                        <span class="progress-text" id="progressText">0%</span>
+                                        <div class="paper-status-message" id="paperStageMessage">提交任务后会显示 PaperBanana 当前处理阶段。</div>
+                                        <div class="paper-status-message" id="paperTaskIdText">任务ID：--</div>
+                                        <div class="paper-stage-list" id="paperStageList">
+                                            <div class="paper-stage-item" data-stage="queued">1. 排队</div>
+                                            <div class="paper-stage-item" data-stage="initializing">2. 初始化</div>
+                                            <div class="paper-stage-item" data-stage="loading_agents">3. 加载 Agent</div>
+                                            <div class="paper-stage-item" data-stage="processing">4. 生成推理</div>
+                                            <div class="paper-stage-item" data-stage="processing_retriever">5. 检索参考</div>
+                                            <div class="paper-stage-item" data-stage="processing_planner">6. 规划内容</div>
+                                            <div class="paper-stage-item" data-stage="processing_stylist">7. 风格优化</div>
+                                            <div class="paper-stage-item" data-stage="processing_visualizer">8. 执行生图</div>
+                                            <div class="paper-stage-item" data-stage="processing_critic">9. 批评迭代</div>
+                                            <div class="paper-stage-item" data-stage="processing_eval">10. 评估整理</div>
+                                            <div class="paper-stage-item" data-stage="saving">11. 写入结果</div>
+                                            <div class="paper-stage-item" data-stage="completed">12. 完成</div>
+                                        </div>
+                                        <div class="paper-progress-row">
+                                            <div class="progress">
+                                                <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+                                            </div>
+                                            <span class="progress-text" id="progressText">0%</span>
+                                        </div>
                                     </div>
                                     <div class="control-group">
                                         <button class="btn btn-outline btn-sm" id="downloadBtn" disabled>
@@ -246,28 +385,11 @@
                     </div>
                 </div>
 
-                <!-- 智能对话页面 -->
-                <div class="page-section" id="page-chat">
-                    <div class="content-card-header">
-                        <h2 class="content-card-title">智能对话</h2>
-                        <p class="content-card-subtitle">功能正在开发中</p>
-                    </div>
-                    <div class="content-card">
-                        <div class="empty-state">
-                            <div class="empty-icon">
-                                <i class="fas fa-tools"></i>
-                            </div>
-                            <h3 class="empty-title">正在开发中</h3>
-                            <p class="text-tertiary">该模块正在完善，敬请期待。</p>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- API密钥页面 -->
                 <div class="page-section" id="page-api-keys">
                     <div class="api-keys">
                         <div class="content-card-header">
-                            <h2 class="content-card-title">API 密钥管理</h2>
+                            <h3 class="content-card-title">API 设置</h3>
                         </div>
 
                         <div class="keys-status">
@@ -301,17 +423,35 @@
                         </div>
 
                         <div class="add-key-form">
-                            <h3>添加新密钥</h3>
+                            <h3>密钥管理</h3>
+                            <div class="form-group">
+                                <label class="form-label">提供商</label>
+                                <select class="form-select" id="apiKeyProvider">
+                                    <option value="grsai">grsai（OpenAI 兼容）</option>
+                                    <option value="openai">ChatGPT / OpenAI</option>
+                                    <option value="deepseek">DeepSeek</option>
+                                    <option value="openrouter">OpenRouter</option>
+                                    <option value="anthropic">Claude / Anthropic</option>
+                                    <option value="google">Gemini / Google</option>
+                                </select>
+                                <div class="form-hint">每个提供商都可以保存多条 Key，并设置一条为当前</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Base URL（可选）</label>
+                                <input type="text" id="apiKeyBaseUrl" class="form-input"
+                                       placeholder="OpenAI 兼容接口，例如：https://grsaiapi.com/v1">
+                                <div class="form-hint">留空将使用默认值；通常仅 OpenAI 兼容提供商需要填写</div>
+                            </div>
                             <div class="form-group">
                                 <label class="form-label">API 密钥</label>
-                                <input type="text" id="newApiKey" class="form-input"
-                                       placeholder="输入以 sk- 开头的 API 密钥">
-                                <div class="form-hint">密钥将加密存储，确保安全</div>
+                                <input type="password" id="newApiKey" class="form-input"
+                                       placeholder="输入 API Key">
+                                <div class="form-hint">密钥将加密存储在本地数据库中</div>
                             </div>
                             <div class="form-group">
                                 <label class="form-label">密钥名称（可选）</label>
                                 <input type="text" id="keyName" class="form-input"
-                                       placeholder="例如：生产环境密钥">
+                                       placeholder="例如：主账号 / 备用">
                             </div>
                             <div class="form-actions">
                                 <button class="btn btn-primary" id="addKeyBtn">
@@ -322,6 +462,26 @@
                                     <i class="fas fa-vial"></i>
                                     测试密钥
                                 </button>
+                            </div>
+                        </div>
+
+                        <div class="content-card" style="margin-top: 1.25rem;">
+                            <div class="content-card-header">
+                                <h3 class="content-card-title">API 路由</h3>
+                            </div>
+                            <div class="content-card-body">
+                                <div class="form-group">
+                                    <label class="form-label">API 主机（grsai 默认）</label>
+                                    <select class="form-select" id="apiHostSelect">
+                                        <option value="https://grsaiapi.com">海外节点</option>
+                                        <option value="https://grsai.dakka.com.cn">国内直连</option>
+                                        <option value="custom">自定义...</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">自定义 API 主机</label>
+                                    <input class="form-input" id="apiHostCustomInput" placeholder="例如：https://api.example.com" autocomplete="off" />
+                                </div>
                             </div>
                         </div>
 
@@ -336,10 +496,10 @@
                             <table class="keys-table">
                                 <thead>
                                     <tr>
+                                        <th>提供商</th>
                                         <th>名称</th>
                                         <th>密钥掩码</th>
-                                        <th>来源</th>
-                                        <th>状态</th>
+                                        <th>Base URL</th>
                                         <th>操作</th>
                                     </tr>
                                 </thead>
@@ -354,84 +514,103 @@
                                 </tbody>
                             </table>
                         </div>
+
                     </div>
                 </div>
-
-                <!-- 工具箱页面 -->
-                <div class="page-section" id="page-toolbox">
-                    <div class="toolbox">
-                        <div class="content-card-header">
-                            <h2 class="content-card-title">实用工具箱</h2>
-                        </div>
-
-                        <div class="tools-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
-                            <!-- 快捷导航 -->
-                            <div class="content-card">
-                                <div class="content-card-header" style="display: flex; justify-content: space-between; align-items: center;">
-                                    <h3 class="content-card-title">
-                                        <i class="fas fa-compass" style="margin-right: 0.5rem; color: var(--color-primary);"></i>
-                                        快捷导航
-                                    </h3>
-                                    <button class="btn btn-ghost btn-sm" id="toolAddNavBtn" title="添加链接">
-                                        <i class="fas fa-plus"></i>
-                                    </button>
-                                </div>
-                                <div class="content-card-body">
-                                    <div class="nav-grid" id="toolNavGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 1rem;">
-                                        <!-- 导航项将通过 JS 动态生成 -->
-                                    </div>
-                                </div>
+                <div class="page-section" id="page-edit-banana">
+                    <div class="generation-layout editbanana-layout">
+                        <!-- 参数面板 -->
+                        <div class="parameters-panel editbanana-panel">
+                            <div class="panel-title-row">
+                                <h3 class="content-card-title">Edit Banana</h3>
+                                <span class="panel-title-tip">图片转 DrawIO</span>
                             </div>
 
-                            <!-- 截图工具 -->
-                            <div class="content-card">
-                                <div class="content-card-header">
-                                    <h3 class="content-card-title">
-                                        <i class="fas fa-camera" style="margin-right: 0.5rem; color: var(--color-secondary);"></i>
-                                        截图工具
-                                    </h3>
+                            <div class="parameter-section">
+                                <div class="section-head">
+                                    <i class="fas fa-file-image"></i>
+                                    <span>上传图片</span>
+                                    <span class="required">*</span>
                                 </div>
-                                <div class="content-card-body">
-                                    <div class="form-group">
-                                        <button class="btn btn-primary btn-block btn-lg" id="toolScreenshotBtn">
-                                            <i class="fas fa-camera"></i>
-                                            立即截图
-                                        </button>
-                                        <p class="text-sm text-tertiary" style="margin-top: 0.5rem; text-align: center;">
-                                            点击后选择要截取的屏幕、窗口或标签页
-                                        </p>
+                                <label class="upload-box editbanana-upload" for="editBananaFileInput">
+                                    <i class="fas fa-upload"></i>
+                                    <span>点击选择图片文件</span>
+                                </label>
+                                <input type="file" id="editBananaFileInput" class="form-input" accept="image/*">
+                                <div class="editbanana-file-name" id="editBananaFileName">未选择文件</div>
+                                <div class="parameter-hint">输出为可编辑 DrawIO（.drawio）。暂不支持 PDF。</div>
+                            </div>
+
+                            <div class="parameter-section">
+                                <div class="section-head">
+                                    <i class="fas fa-sliders"></i>
+                                    <span>转换选项</span>
+                                </div>
+                                <label class="checkbox-label editbanana-check">
+                                    <input type="checkbox" id="editBananaWithText" checked>
+                                    <span>识别文字（OCR）</span>
+                                </label>
+                                <label class="checkbox-label editbanana-check">
+                                    <input type="checkbox" id="editBananaWithRefinement">
+                                    <span>启用精修（refinement）</span>
+                                </label>
+                            </div>
+
+                            <div class="form-actions editbanana-actions">
+                                <button class="btn btn-primary btn-lg" id="editBananaConvertBtn">
+                                    <i class="fas fa-wand-magic-sparkles"></i>
+                                    转换为 DrawIO
+                                </button>
+                                <button class="btn btn-outline" id="editBananaCheckBtn">
+                                    <i class="fas fa-stethoscope"></i>
+                                    检查环境
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 预览面板 -->
+                        <div class="preview-panel editbanana-preview">
+                            <div class="preview-container editbanana-preview-stack">
+                                <div class="content-card editbanana-card">
+                                    <div class="content-card-header">
+                                        <h3 class="content-card-title">状态</h3>
                                     </div>
-                                    
-                                    <div style="border-top: 1px solid var(--color-border); margin: 1.5rem 0;"></div>
-                                    
-                                    <div class="form-group">
-                                        <label class="form-label">快捷键设置</label>
-                                        <div style="display: flex; gap: 0.5rem;">
-                                            <input type="text" class="form-input" id="toolScreenshotShortcut" readonly placeholder="点击设置快捷键" style="text-align: center; cursor: pointer;">
-                                            <button class="btn btn-outline" id="toolClearShortcutBtn" title="清除快捷键">
-                                                <i class="fas fa-times"></i>
-                                            </button>
+                                    <div class="content-card-body">
+                                        <div class="text-sm text-tertiary" id="editBananaStatusText">点击“检查环境”确认本地 Edit-Banana 已配置。</div>
+                                    </div>
+                                </div>
+                                <div class="content-card editbanana-card">
+                                    <div class="content-card-header">
+                                        <h3 class="content-card-title">推荐流程</h3>
+                                    </div>
+                                    <div class="content-card-body">
+                                        <div class="editbanana-steps">
+                                            <div>1. 先点击“检查环境”</div>
+                                            <div>2. 上传单张清晰图片</div>
+                                            <div>3. 选择 OCR / 精修选项</div>
+                                            <div>4. 点击“转换为 DrawIO”</div>
                                         </div>
                                     </div>
-                                    
-                                    <div class="form-group">
-                                        <label class="checkbox-label" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                                            <input type="checkbox" id="toolAutoCopy" checked>
-                                            <span>截图后自动复制到剪贴板</span>
-                                        </label>
+                                </div>
+                                <div class="content-card editbanana-card">
+                                    <div class="content-card-header">
+                                        <h3 class="content-card-title">说明</h3>
+                                    </div>
+                                    <div class="content-card-body">
+                                        <div class="text-sm text-tertiary">
+                                            该功能走本机服务端处理（不是上游 API）。首次运行可能需要较长时间加载模型。
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-
                 <!-- 设置页面 -->
                 <div class="page-section" id="page-settings">
                     <div class="settings">
                         <div class="content-card-header">
-                            <h2 class="content-card-title">系统设置</h2>
-                            <p class="content-card-subtitle"></p>
+                            <h3 class="content-card-title">设置项</h3>
                         </div>
 
                         <div class="settings-group">
@@ -463,115 +642,15 @@
                                 </div>
                             </div>
                         </div>
-
                         <div class="settings-group">
-                            <h3 class="settings-group-title">API 设置</h3>
+                            <h3 class="settings-group-title">说明</h3>
                             <div class="settings-item">
                                 <div class="settings-label">
-                                    <div class="settings-name">API 主机</div>
-                                    <div class="settings-description">选择 API 服务器地址</div>
-                                </div>
-                                <select class="form-select" id="apiHostSelect" style="width: 20rem;">
-                                    <option value="https://api.grsai.com">海外节点</option>
-                                    <option value="https://grsai.dakka.com.cn">国内直连</option>
-                                </select>
-                            </div>
-                            <div class="settings-item">
-                                <div class="settings-label">
-                                    <div class="settings-name">图像生成模型</div>
-                                    <div class="settings-description">默认使用的图像生成模型</div>
-                                </div>
-                                <select class="form-select" id="imageModelSelect" style="width: 15rem;">
-                                    <option value="nano-banana-fast">Nano Banana Fast</option>
-                                    <option value="nano-banana" selected>Nano Banana</option>
-                                    <option value="nano-banana-pro">Nano Banana Pro</option>
-                                    <option value="nano-banana-pro-vt">Nano Banana Pro VT</option>
-                                </select>
-                            </div>
-                            <div class="settings-item">
-                                <div class="settings-label">
-                                    <div class="settings-name">聊天模型</div>
-                                    <div class="settings-description">默认使用的聊天模型</div>
-                                </div>
-                                <select class="form-select" id="chatModelSelect" style="width: 15rem;">
-                                    <option value="nano-banana-pro" selected>Nano Banana Pro</option>
-                                    <option value="nano-banana-pro-vt">Nano Banana Pro VT</option>
-                                    <option value="nano-banana-fast">Nano Banana Fast</option>
-                                    <option value="nano-banana">Nano Banana</option>
-                                    <option value="gemini-3-pro">Gemini 3 Pro</option>
-                                    <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
-                                    <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-                                    <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</option>
-                                </select>
-                            </div>
-                            <div class="settings-item">
-                                <div class="settings-label">
-                                    <div class="settings-name">流式响应</div>
-                                    <div class="settings-description">启用聊天时的流式响应</div>
-                                </div>
-                                <label class="switch">
-                                    <input type="checkbox" id="streamToggle" checked>
-                                    <span class="switch-slider"></span>
-                                </label>
-                            </div>
-                            <div class="settings-item">
-                                <div class="settings-label">
-                                    <div class="settings-name">请求超时</div>
-                                    <div class="settings-description">API 请求超时时间</div>
-                                </div>
-                                <select class="form-select" id="timeoutSelect" style="width: 8rem;">
-                                    <option value="30">30 秒</option>
-                                    <option value="60" selected>60 秒</option>
-                                    <option value="120">120 秒</option>
-                                </select>
-                            </div>
-                            <div class="settings-item">
-                                <div class="settings-label">
-                                    <div class="settings-name">重试次数</div>
-                                    <div class="settings-description">API 请求失败时的重试次数</div>
-                                </div>
-                                <select class="form-select" id="retrySelect" style="width: 8rem;">
-                                    <option value="0">0 次</option>
-                                    <option value="1" selected>1 次</option>
-                                    <option value="2">2 次</option>
-                                    <option value="3">3 次</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="settings-group">
-                            <h3 class="settings-group-title">关于</h3>
-                            <div class="about-content">
-                                <div class="app-info">
-                                    <div class="brand-logo">
-                                        <i class="fas fa-brain"></i>
-                                    </div>
-                                    <div>
-                                        <h4>a.zhai's ToolBox</h4>
-                                        <p class="text-tertiary">版本 1.2.0</p>
-                                    </div>
-                                </div>
-                                <div class="about-links">
-                                    <a href="/manual" class="btn btn-ghost btn-sm" target="_blank" rel="noopener">
-                                        <i class="fas fa-book"></i>
-                                        用户手册
-                                    </a>
-                                    <a href="#" class="btn btn-ghost btn-sm">
-                                        <i class="fas fa-code"></i>
-                                        API 文档
-                                    </a>
-                                    <a href="https://github.com/JackaZhai/nano_banana/issues" class="btn btn-ghost btn-sm" target="_blank">
-                                        <i class="fas fa-bug"></i>
-                                        报告问题
-                                    </a>
-                                </div>
-                                <div class="about-footer">
-                                    <p class="text-sm text-tertiary">© 2025 a.zhai's ToolBox. 保留所有权利。</p>
-                                    <p class="text-xs text-muted">Based on Flask and modern web technologies</p>
+                                    <div class="settings-name">API 与模型配置</div>
+                                    <div class="settings-description">已迁移到“API 设置”页面统一管理。</div>
                                 </div>
                             </div>
                         </div>
-                    </div>
                 </div>
             </div>
         </main>
@@ -613,7 +692,7 @@
             apiHost: "{{ api_host }}",
             hasApiKey: "{{ 'true' if has_api_key else 'false' }}" === "true",
             endpoints: {
-                draw: "{{ api_host }}/v1/draw/nano-banana",
+                draw: "{{ api_host }}/v1/draw/completions",
                 result: "{{ api_host }}/v1/draw/result",
                 chat: "{{ api_host }}/v1/chat/completions"
             }
@@ -622,5 +701,24 @@
 
     <script src="{{ url_for('static', filename='js/api-service.js') }}"></script>
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/integrations.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/desktop.js') }}"></script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,4 +1,4 @@
-/* ============================================
+﻿/* ============================================
    a.zhai's ToolBox - 布局系统
    ============================================ */
 
@@ -40,9 +40,9 @@
 }
 
 .brand-logo {
-  width: 2rem;
-  height: 2rem;
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+  width: 2.75rem;
+  height: 2.75rem;
+  background: #ffffff;
   border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
@@ -267,8 +267,23 @@
 .main-content {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
   overflow: hidden;
+}
+
+.brand-logo-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #ffffff;
+  filter: none !important;
+  display: block;
+  position: relative;
+  z-index: 1;
+}
+
+.brand-logo::before {
+  display: none;
 }
 
 /* 顶部栏 */
@@ -302,7 +317,7 @@
 .page-title h1 {
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-semibold);
-  margin-bottom: var(--space-1);
+  margin: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -354,7 +369,7 @@
 .search-input:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+  box-shadow: 0 0 0 3px rgba(185, 113, 63, 0.14);
 }
 
 .search-input::placeholder {
@@ -366,6 +381,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  flex-wrap: nowrap;
 }
 
 .action-button {
@@ -390,6 +406,48 @@
   border-color: var(--color-primary);
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
+}
+/* ===== Electron Window Controls ===== */
+body[data-desktop="true"] .topbar {
+  -webkit-app-region: drag;
+}
+
+body[data-desktop="true"] .topbar-actions,
+body[data-desktop="true"] .topbar-actions * {
+  -webkit-app-region: no-drag;
+}
+
+.window-controls {
+  display: none;
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+body[data-desktop="true"] .window-controls {
+  display: flex;
+}
+
+.win-btn {
+  width: 2.4rem;
+  height: 2.25rem;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.win-btn:hover {
+  background: var(--color-bg-surface-highlight);
+  color: var(--color-text-primary);
+}
+
+.win-btn.win-close:hover {
+  background: rgba(239, 68, 68, 0.25);
+  color: #fff;
 }
 
 .action-badge {
@@ -446,6 +504,7 @@
 /* ===== 页面内容 ===== */
 .page-content {
   flex: 1;
+  min-height: 0;
   padding: var(--space-5);
   overflow-y: auto;
 }
@@ -453,6 +512,26 @@
 /* 页面头部 */
 .page-header {
   margin-bottom: var(--space-6);
+}
+
+.page-intro {
+  margin-bottom: var(--space-5);
+}
+
+.page-intro-title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.01em;
+  color: var(--color-text-primary);
+}
+
+.page-intro-desc {
+  margin: 0;
+  max-width: 52rem;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+  line-height: 1.6;
 }
 
 .page-header h1 {
@@ -582,8 +661,8 @@
   }
 
   .brand-logo {
-    width: 2rem;
-    height: 2rem;
+    width: 2.25rem;
+    height: 2.25rem;
     font-size: 1rem;
   }
 
@@ -673,15 +752,16 @@
   }
 
   .topbar {
-    flex-direction: column;
-    align-items: stretch;
-    gap: var(--space-3);
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
     padding: var(--space-3);
   }
 
   .topbar-left,
   .topbar-right {
-    width: 100%;
+    width: auto;
   }
 
   .search-box {
@@ -690,6 +770,14 @@
 
   .page-content {
     padding: var(--space-3);
+  }
+
+  .page-intro {
+    margin-bottom: var(--space-4);
+  }
+
+  .page-intro-title {
+    font-size: var(--font-size-lg);
   }
 
   .content-grid.grid-2,
@@ -712,8 +800,8 @@
 
 @media (max-width: 480px) {
   .topbar-actions {
-    flex-wrap: wrap;
-    justify-content: center;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
   }
 
   .action-button {
@@ -761,3 +849,4 @@
     margin-bottom: 1.5rem;
   }
 }
+

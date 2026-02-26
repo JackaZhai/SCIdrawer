@@ -1,14 +1,15 @@
 """
 认证服务
 """
+
 from datetime import datetime, timedelta
 from typing import Dict, Optional, Tuple
 
 from flask import session
 
+from ..config import get_config
 from ..models.user import User
 from ..utils.errors import AuthenticationError
-from ..config import get_config
 
 
 class AuthService:

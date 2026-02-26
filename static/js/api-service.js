@@ -1,4 +1,4 @@
-/* ============================================
+﻿/* ============================================
    a.zhai's ToolBox - API 服务层
    直接调用第三方AI API，实现完整的业务功能
    ============================================ */
@@ -6,25 +6,21 @@
 // API 配置
 const APIConfig = {
     // API 主机地址（根据用户选择使用海外或国内节点）
-    host: localStorage.getItem('apiHost') || 'https://api.grsai.com',
+    host: localStorage.getItem('apiHost') || 'https://grsaiapi.com',
 
     // 支持的模型列表
     imageModels: [
-        { id: 'nano-banana-fast', name: 'Nano Banana Fast', description: '快速生成，适合简单场景' },
-        { id: 'nano-banana', name: 'Nano Banana', description: '标准模型，平衡速度和质量' },
-        { id: 'nano-banana-pro', name: 'Nano Banana Pro', description: '专业模型，支持高分辨率' },
-        { id: 'nano-banana-pro-vt', name: 'Nano Banana Pro VT', description: '专业视觉思考模型' }
+        { id: 'sora-image', name: 'Sora Image', description: 'grsai 生图模型' },
+        { id: 'nano-banana-fast', name: 'Nano Banana Fast', description: 'grsai 生图模型，速度优先' },
+        { id: 'nano-banana-pro', name: 'Nano Banana Pro', description: '默认模型，质量优先' },
+        { id: 'nano-banana-pro-vt', name: 'Nano Banana Pro VT', description: 'grsai 生图模型' },
+        { id: 'gpt-image-1.5', name: 'GPT Image 1.5', description: '新版高质量图像模型' }
     ],
 
     chatModels: [
-        { id: 'nano-banana-pro', name: 'Nano Banana Pro', description: '专业对话模型' },
-        { id: 'nano-banana-pro-vt', name: 'Nano Banana Pro VT', description: '专业视觉思考模型' },
-        { id: 'nano-banana-fast', name: 'Nano Banana Fast', description: '快速对话模型' },
-        { id: 'nano-banana', name: 'Nano Banana', description: '标准对话模型' },
-        { id: 'gemini-3-pro', name: 'Gemini 3 Pro', description: 'Google Gemini 3 Pro' },
-        { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', description: 'Google Gemini 2.5 Pro' },
-        { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', description: 'Google Gemini 2.5 Flash' },
-        { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite', description: '轻量级Gemini模型' }
+        { id: 'gemini-3.1-pro', name: 'Gemini 3.1 Pro', description: 'grsai 语言模型' },
+        { id: 'gemini-3-pro', name: 'Gemini 3 Pro', description: 'grsai 语言模型' },
+        { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', description: 'grsai 语言模型' }
     ],
 
     // 图像比例选项
@@ -49,15 +45,33 @@ const APIConfig = {
         { id: '4K', name: '4K', description: '超高清分辨率' }
     ]
 };
+// 聊天提供商配置（非 grsai 模式走各自官方 API）
+const ChatProviderConfig = {
+    grsai: { type: 'grsai', baseUrl: null },
+    openai: { type: 'openai', baseUrl: 'https://api.openai.com/v1' },
+    deepseek: { type: 'openai', baseUrl: 'https://api.deepseek.com/v1' },
+    openrouter: { type: 'openai', baseUrl: 'https://openrouter.ai/api/v1' },
+    anthropic: { type: 'anthropic', baseUrl: 'https://api.anthropic.com' }
+};
 
 // API 服务类
 class APIService {
     constructor() {
         this.apiKey = localStorage.getItem('apiKey') || null;
         this.apiHost = APIConfig.host;
-        this.activeImageModel = localStorage.getItem('activeImageModel') || 'nano-banana';
-        this.activeChatModel = localStorage.getItem('activeChatModel') || 'nano-banana-pro';
+        const storedImageModel = localStorage.getItem('activeImageModel') || '';
+        const storedChatModel = localStorage.getItem('activeChatModel') || '';
+        const validImageModels = new Set((APIConfig.imageModels || []).map((m) => m.id));
+        const validChatModels = new Set((APIConfig.chatModels || []).map((m) => m.id));
+        this.activeImageModel = validImageModels.has(storedImageModel) ? storedImageModel : 'nano-banana-pro';
+        this.activeChatModel = validChatModels.has(storedChatModel) ? storedChatModel : 'gemini-2.5-pro';
+        localStorage.setItem('activeImageModel', this.activeImageModel);
+        localStorage.setItem('activeChatModel', this.activeChatModel);
         this.useStreaming = localStorage.getItem('useStreaming') !== 'false'; // 默认启用流式
+
+        // 聊天提供商（DeepSeek/ChatGPT/Claude/OpenRouter 等）
+        this.chatProvider = localStorage.getItem('chatProvider') || 'grsai';
+        this.chatApiKey = localStorage.getItem('chatApiKey') || null;
     }
 
     // 设置 API 密钥
@@ -72,7 +86,17 @@ class APIService {
         localStorage.setItem('apiHost', host);
     }
 
-    // 获取请求头
+    // 设置聊天提供商
+    setChatProvider(provider) {
+        this.chatProvider = provider || 'grsai';
+        localStorage.setItem('chatProvider', this.chatProvider);
+    }
+
+    // 设置聊天 API Key（非 grsai）
+    setChatApiKey(key) {
+        this.chatApiKey = key || null;
+        localStorage.setItem('chatApiKey', key || '');
+    }
     getHeaders() {
         const headers = {
             'Content-Type': 'application/json'
@@ -87,14 +111,16 @@ class APIService {
 
     // 通用 API 请求方法
     async makeRequest(endpoint, method = 'POST', body = null) {
-        if (!this.apiKey) {
+        const isLocal = typeof endpoint === 'string' && endpoint.startsWith('/api/');
+        if (!isLocal && !this.apiKey) {
             throw new Error('请先设置 API 密钥');
         }
 
-        const url = `${this.apiHost}${endpoint}`;
+        const url = isLocal ? endpoint : `${this.apiHost}${endpoint}`;
         const options = {
             method,
-            headers: this.getHeaders()
+            headers: this.getHeaders(),
+            credentials: 'same-origin'
         };
 
         if (body && (method === 'POST' || method === 'PUT')) {
@@ -112,8 +138,14 @@ class APIService {
                 } catch {
                     errorData = { message: errorText };
                 }
-
-                throw new Error(`API 请求失败: ${response.status} - ${errorData.message || errorData.msg || '未知错误'}`);
+                const backendMsg =
+                    errorData.message ||
+                    errorData.msg ||
+                    errorData.error ||
+                    errorData.details ||
+                    errorText ||
+                    '未知错误';
+                throw new Error(`API 请求失败: ${response.status} - ${backendMsg}`);
             }
 
             // 处理流式响应
@@ -128,13 +160,8 @@ class APIService {
             throw error;
         }
     }
-
     async getCredits() {
-        const body = {
-            apiKey: this.apiKey
-        };
-
-        const response = await this.makeRequest('/client/openapi/getAPIKeyCredits', 'POST', body);
+        const response = await this.makeRequest('/api/credits', 'GET');
         if (response.code !== 0) {
             throw new Error(response.msg || '获取积分失败');
         }
@@ -142,7 +169,7 @@ class APIService {
     }
 
     async getModelStatus(model) {
-        const endpoint = `/client/common/getModelStatus?model=${encodeURIComponent(model)}`;
+        const endpoint = `/api/model-status?model=${encodeURIComponent(model)}`;
         const response = await this.makeRequest(endpoint, 'GET');
         if (response.code !== 0) {
             throw new Error(response.msg || '获取模型状态失败');
@@ -155,7 +182,7 @@ class APIService {
         try {
             // 使用一个简单的聊天请求测试密钥
             const testBody = {
-                model: 'nano-banana-fast',
+                model: 'gemini-2.5-pro',
                 stream: false,
                 messages: [
                     {
@@ -183,6 +210,16 @@ class APIService {
     async generateImageStream(prompt, options = {}) {
         const {
             model = this.activeImageModel,
+            provider = 'grsai',
+            textProvider = '',
+            imageProvider = '',
+            textModel = '',
+            imageModel = '',
+            expMode = '',
+            retrievalSetting = '',
+            criticEnabled = true,
+            evalEnabled = true,
+            maxCriticRounds = null,
             aspectRatio = 'auto',
             imageSize = '1K',
             urls = [],
@@ -191,6 +228,16 @@ class APIService {
 
         const body = {
             model,
+            provider,
+            textProvider,
+            imageProvider,
+            textModel,
+            imageModel,
+            expMode,
+            retrievalSetting,
+            criticEnabled,
+            evalEnabled,
+            maxCriticRounds,
             prompt,
             aspectRatio,
             imageSize,
@@ -202,7 +249,7 @@ class APIService {
         body.webHook = '-1';
 
         try {
-            const response = await this.makeRequest('/v1/draw/nano-banana', 'POST', body);
+            const response = await this.makeRequest('/api/draw', 'POST', body);
 
             if (response.code !== 0) {
                 throw new Error(response.msg || '图像生成请求失败');
@@ -221,7 +268,7 @@ class APIService {
     // 查询图像生成结果
     async getImageResult(taskId) {
         try {
-            const response = await this.makeRequest('/v1/draw/result', 'POST', { id: taskId });
+            const response = await this.makeRequest('/api/result', 'POST', { id: taskId });
 
             if (response.code !== 0) {
                 throw new Error(response.msg || '查询结果失败');
@@ -237,21 +284,59 @@ class APIService {
         }
     }
 
+    // 取消图像生成任务
+    async cancelImageTask(taskId) {
+        try {
+            const response = await this.makeRequest('/api/cancel', 'POST', { id: taskId });
+            if (response.code !== 0) {
+                throw new Error(response.msg || '取消任务失败');
+            }
+            return {
+                success: true,
+                data: response.data,
+                message: '任务已取消'
+            };
+        } catch (error) {
+            throw new Error(`取消任务失败: ${error.message}`);
+        }
+    }
+
     // 图像生成 - 轮询方式（兼容旧UI）
     async generateImage(prompt, options = {}) {
         const {
             model = this.activeImageModel,
+            provider = 'grsai',
+            textProvider = '',
+            imageProvider = '',
+            textModel = '',
+            imageModel = '',
+            expMode = '',
+            retrievalSetting = '',
+            criticEnabled = true,
+            evalEnabled = true,
+            maxCriticRounds = null,
             aspectRatio = 'auto',
             imageSize = '1K',
             urls = [],
             onProgress = null,
-            onComplete = null
+            onComplete = null,
+            cancellation = null
         } = options;
 
         try {
             // 1. 提交生成任务
             const submitResult = await this.generateImageStream(prompt, {
                 model,
+                provider,
+                textProvider,
+                imageProvider,
+                textModel,
+                imageModel,
+                expMode,
+                retrievalSetting,
+                criticEnabled,
+                evalEnabled,
+                maxCriticRounds,
                 aspectRatio,
                 imageSize,
                 urls,
@@ -259,27 +344,47 @@ class APIService {
             });
 
             const taskId = submitResult.taskId;
+            if (cancellation && typeof cancellation === 'object') {
+                cancellation.taskId = taskId;
+            }
 
             if (onProgress) {
-                onProgress(10, '任务已提交，等待处理...');
+                onProgress(10, '任务已提交，等待处理...', {
+                    id: taskId,
+                    status: 'running',
+                    stage: 'queued',
+                    stageMessage: '任务已提交，等待处理...'
+                });
             }
 
             // 2. 轮询查询结果
             let result = null;
             let attempts = 0;
-            const maxAttempts = 60; // 最多尝试60次（5分钟）
+            const maxAttempts = 240; // 最多尝试240次（20分钟）
             const pollInterval = 5000; // 5秒轮询一次
 
             while (attempts < maxAttempts) {
+                if (cancellation && cancellation.cancelled) {
+                    const cancelError = new Error('任务已取消');
+                    cancelError.isCanceled = true;
+                    throw cancelError;
+                }
                 await new Promise(resolve => setTimeout(resolve, pollInterval));
                 attempts++;
 
                 try {
+                    if (cancellation && cancellation.cancelled) {
+                        const cancelError = new Error('任务已取消');
+                        cancelError.isCanceled = true;
+                        throw cancelError;
+                    }
                     const pollResult = await this.getImageResult(taskId);
                     result = pollResult.data;
 
                     if (onProgress) {
-                        onProgress(result.progress || Math.min(10 + attempts * 2, 90), `处理中... ${result.progress || 0}%`);
+                        const progressValue = result.progress || Math.min(10 + attempts * 2, 90);
+                        const stageText = result.stageMessage || `处理中... ${progressValue}%`;
+                        onProgress(progressValue, stageText, result);
                     }
 
                     // 检查任务状态
@@ -294,31 +399,52 @@ class APIService {
                             message: '图像生成成功'
                         };
                     } else if (result.status === 'failed') {
-                        throw new Error(`图像生成失败: ${result.failure_reason || result.error || '未知错误'}`);
+                        const fatalError = new Error(`图像生成失败: ${result.failure_reason || result.error || '未知错误'}`);
+                        fatalError.isFatal = true;
+                        throw fatalError;
                     }
                     // 如果状态是 'running'，继续轮询
                 } catch (pollError) {
+                    if (pollError && pollError.isCanceled) {
+                        throw pollError;
+                    }
+                    if (pollError && pollError.isFatal) {
+                        throw pollError;
+                    }
                     console.warn(`第 ${attempts} 次轮询失败:`, pollError);
                     // 继续轮询，除非是致命错误
                 }
             }
 
-            throw new Error('图像生成超时，请稍后查询结果');
+            const timeoutError = new Error('图像生成轮询超时，任务仍在后台执行，请稍后查询结果');
+            timeoutError.isTimeout = true;
+            timeoutError.taskId = taskId;
+            throw timeoutError;
         } catch (error) {
-            throw new Error(`图像生成失败: ${error.message}`);
+            if (error && (error.isCanceled || error.isFatal || error.isTimeout)) {
+                throw error;
+            }
+            const wrapped = new Error(`图像生成失败: ${error.message}`);
+            if (error && error.taskId) {
+                wrapped.taskId = error.taskId;
+            }
+            throw wrapped;
         }
     }
 
     // 聊天对话 - 非流式
+    // 聊天对话 - 非流式/流式（统一走本地后端，密钥在“API 密钥”管理）
     async chatCompletion(messages, options = {}) {
         const {
             model = this.activeChatModel,
             stream = false,
             temperature = 0.7,
-            maxTokens = 2000
+            maxTokens = 2000,
+            provider = (this.chatProvider || 'grsai')
         } = options;
 
         const body = {
+            provider,
             model,
             stream,
             messages,
@@ -326,22 +452,16 @@ class APIService {
             max_tokens: maxTokens
         };
 
-        try {
-            const response = await this.makeRequest('/v1/chat/completions', 'POST', body);
-
-            if (stream) {
-                // 流式响应需要特殊处理
-                return response; // 返回原始响应
-            }
-
-            return {
-                success: true,
-                data: response,
-                message: '聊天完成'
-            };
-        } catch (error) {
-            throw new Error(`聊天请求失败: ${error.message}`);
+        const response = await this.makeRequest('/api/chat', 'POST', body);
+        if (stream) {
+            return response;
         }
+
+        return {
+            success: true,
+            data: response,
+            message: '聊天完成'
+        };
     }
 
     // 聊天对话 - 流式（用于实时显示）
@@ -451,3 +571,10 @@ const apiService = new APIService();
 // 导出到全局
 window.APIService = apiService;
 window.APIConfig = APIConfig;
+
+
+
+
+
+
+

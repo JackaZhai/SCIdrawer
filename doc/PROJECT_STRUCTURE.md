@@ -1,6 +1,6 @@
 # 项目结构说明
 
-整理后的 a.zhai's ToolBox 项目结构
+整理后的 SCIdrawer 项目结构
 
 ## 根目录文件
 - `app.py` - Flask 主应用文件

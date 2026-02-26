@@ -1,15 +1,16 @@
 """
 认证路由
 """
+
 from typing import Any
 
-from flask import Blueprint, render_template, request, redirect, url_for
+from flask import Blueprint, redirect, render_template, request, url_for
 
-from ..services.auth import get_auth_service
 from ..services.api_key_service import get_api_key_service
+from ..services.auth import get_auth_service
 
 # 创建认证蓝图
-auth_bp = Blueprint('auth', __name__)
+auth_bp = Blueprint("auth", __name__)
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])

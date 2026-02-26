@@ -1,6 +1,7 @@
 """
 加密工具
 """
+
 import base64
 from hashlib import sha256
 from typing import Optional
@@ -59,6 +60,7 @@ def get_encryption_service() -> EncryptionService:
     global _encryption_service
     if _encryption_service is None:
         from ..config import get_config
+
         config = get_config()
         _encryption_service = EncryptionService(config.app_secret_key)
     return _encryption_service

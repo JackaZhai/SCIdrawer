@@ -1,11 +1,12 @@
 """
 基础模型类
 """
-import sqlite3
-from typing import Any, Dict, List, Optional, Type, TypeVar
-from abc import ABC, abstractmethod
 
-T = TypeVar('T', bound='BaseModel')
+import sqlite3
+from abc import ABC, abstractmethod
+from typing import Any, Dict, Type, TypeVar
+
+T = TypeVar("T", bound="BaseModel")
 
 
 class BaseModel(ABC):

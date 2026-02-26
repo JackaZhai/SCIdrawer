@@ -1,28 +1,52 @@
+﻿"""API key model (encrypted at rest).
+
+Supports storing multiple keys per user, grouped by provider.
+One active key is allowed per (user_id, provider).
 """
-API密钥模型
-"""
+
+from __future__ import annotations
+
+import sqlite3
 import uuid
+from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 from .base import BaseModel
 
 
+@dataclass
 class ApiKey(BaseModel):
-    """API密钥模型类"""
+    id: str
+    user_id: int
+    provider: str
+    value: str
+    name: str
+    base_url: str
+    source: str
+    is_active: bool
+    created_at: str
 
-    def __init__(self,
-                 id: Optional[str] = None,
-                 user_id: Optional[int] = None,
-                 value: str = "",
-                 source: str = "custom",
-                 is_active: bool = False,
-                 created_at: Optional[str] = None):
+    def __init__(
+        self,
+        id: Optional[str] = None,
+        user_id: Optional[int] = None,
+        provider: str = "grsai",
+        value: str = "",
+        name: str = "",
+        base_url: str = "",
+        source: str = "custom",
+        is_active: bool = False,
+        created_at: Optional[str] = None,
+    ):
         self.id = id or uuid.uuid4().hex
-        self.user_id = user_id
+        self.user_id = int(user_id) if user_id is not None else 0
+        self.provider = (provider or "grsai").strip() or "grsai"
         self.value = value
-        self.source = source
-        self.is_active = is_active
+        self.name = name or ""
+        self.base_url = base_url or ""
+        self.source = source or "custom"
+        self.is_active = bool(is_active)
         self.created_at = created_at or datetime.utcnow().isoformat()
 
     @classmethod
@@ -35,6 +59,9 @@ class ApiKey(BaseModel):
         CREATE TABLE IF NOT EXISTS api_keys (
             id TEXT PRIMARY KEY,
             user_id INTEGER NOT NULL,
+            provider TEXT NOT NULL DEFAULT 'grsai',
+            name TEXT DEFAULT '',
+            base_url TEXT DEFAULT '',
             value TEXT NOT NULL,
             source TEXT DEFAULT 'custom',
             is_active INTEGER DEFAULT 0,
@@ -44,150 +71,172 @@ class ApiKey(BaseModel):
         """
 
     @classmethod
-    def from_row(cls, row) -> 'ApiKey':
+    def init_table(cls, conn: sqlite3.Connection) -> None:
+        """Create table and run lightweight migrations."""
+        conn.execute(cls.get_create_table_sql())
+
+        # Migrations for older databases.
+        cols = {row["name"] for row in conn.execute("PRAGMA table_info(api_keys)").fetchall()}
+        if "provider" not in cols:
+            conn.execute("ALTER TABLE api_keys ADD COLUMN provider TEXT NOT NULL DEFAULT 'grsai'")
+        if "name" not in cols:
+            conn.execute("ALTER TABLE api_keys ADD COLUMN name TEXT DEFAULT ''")
+        if "base_url" not in cols:
+            conn.execute("ALTER TABLE api_keys ADD COLUMN base_url TEXT DEFAULT ''")
+
+    @classmethod
+    def from_row(cls, row: sqlite3.Row) -> "ApiKey":
         return cls(
             id=row["id"],
             user_id=row["user_id"],
+            provider=row["provider"] if "provider" in row.keys() else "grsai",
+            name=row["name"] if "name" in row.keys() else "",
+            base_url=row["base_url"] if "base_url" in row.keys() else "",
             value=row["value"],
             source=row["source"],
             is_active=bool(row["is_active"]),
-            created_at=row["created_at"]
+            created_at=row["created_at"],
         )
 
     def to_dict(self) -> Dict:
         return {
             "id": self.id,
             "user_id": self.user_id,
+            "provider": self.provider,
+            "name": self.name,
+            "base_url": self.base_url,
             "source": self.source,
             "is_active": self.is_active,
-            "created_at": self.created_at
+            "created_at": self.created_at,
         }
 
     @classmethod
-    def get_by_user_id(cls, user_id: int) -> List['ApiKey']:
-        """根据用户ID获取所有API密钥"""
+    def get_by_user_id(cls, user_id: int, provider: Optional[str] = None) -> List["ApiKey"]:
         from ..services.database import get_db_manager
+
         db = get_db_manager()
-        rows = db.fetch_all(
-            "SELECT * FROM api_keys WHERE user_id = ? ORDER BY created_at ASC",
-            (user_id,)
-        )
+        if provider:
+            rows = db.fetch_all(
+                "SELECT * FROM api_keys WHERE user_id = ? AND provider = ? ORDER BY created_at ASC",
+                (user_id, provider),
+            )
+        else:
+            rows = db.fetch_all(
+                "SELECT * FROM api_keys WHERE user_id = ? ORDER BY created_at ASC",
+                (user_id,),
+            )
         return [cls.from_row(row) for row in rows]
 
     @classmethod
-    def get_active_key(cls, user_id: int) -> Optional['ApiKey']:
-        """获取用户的活动API密钥"""
+    def get_active_key(cls, user_id: int, provider: str) -> Optional["ApiKey"]:
         from ..services.database import get_db_manager
+
         db = get_db_manager()
         row = db.fetch_one(
-            "SELECT * FROM api_keys WHERE user_id = ? AND is_active = 1",
-            (user_id,)
+            "SELECT * FROM api_keys WHERE user_id = ? AND provider = ? AND is_active = 1",
+            (user_id, provider),
         )
         return cls.from_row(row) if row else None
 
     def save(self) -> None:
-        """保存API密钥到数据库"""
         from ..services.database import get_db_manager
+
         db = get_db_manager()
 
-        # 如果设置为活动密钥，先取消其他密钥的活动状态
+        # Ensure only one active key per provider.
         if self.is_active and self.user_id:
             db.execute_query(
-                "UPDATE api_keys SET is_active = 0 WHERE user_id = ?",
-                (self.user_id,)
+                "UPDATE api_keys SET is_active = 0 WHERE user_id = ? AND provider = ?",
+                (self.user_id, self.provider),
             )
 
-        # 插入或更新密钥
         db.execute_query(
             """
-            INSERT INTO api_keys (id, user_id, value, source, is_active)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO api_keys (id, user_id, provider, name, base_url, value, source, is_active)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
+                provider = excluded.provider,
+                name = excluded.name,
+                base_url = excluded.base_url,
                 value = excluded.value,
                 source = excluded.source,
                 is_active = excluded.is_active
             """,
-            (self.id, self.user_id, self.value, self.source, 1 if self.is_active else 0)
-        )
-
-    def delete(self) -> None:
-        """从数据库删除API密钥"""
-        from ..services.database import get_db_manager
-        db = get_db_manager()
-        db.execute_query(
-            "DELETE FROM api_keys WHERE id = ?",
-            (self.id,)
+            (
+                self.id,
+                self.user_id,
+                self.provider,
+                self.name,
+                self.base_url,
+                self.value,
+                self.source,
+                1 if self.is_active else 0,
+            ),
         )
 
     @classmethod
     def delete_by_id(cls, key_id: str, user_id: int) -> bool:
-        """根据ID删除API密钥"""
         from ..services.database import get_db_manager
+
         db = get_db_manager()
-
-        # 检查密钥是否存在且属于该用户
         row = db.fetch_one(
-            "SELECT * FROM api_keys WHERE id = ? AND user_id = ?",
-            (key_id, user_id)
+            "SELECT id FROM api_keys WHERE id = ? AND user_id = ?",
+            (key_id, user_id),
         )
-
         if not row:
             return False
-
-        db.execute_query(
-            "DELETE FROM api_keys WHERE id = ?",
-            (key_id,)
-        )
+        db.execute_query("DELETE FROM api_keys WHERE id = ?", (key_id,))
         return True
 
     @classmethod
     def set_active_key(cls, key_id: str, user_id: int) -> bool:
-        """设置活动API密钥"""
+        """Set active key for this key's provider."""
         from ..services.database import get_db_manager
+
         db = get_db_manager()
-
-        # 检查密钥是否存在且属于该用户
         row = db.fetch_one(
-            "SELECT * FROM api_keys WHERE id = ? AND user_id = ?",
-            (key_id, user_id)
+            "SELECT id, provider FROM api_keys WHERE id = ? AND user_id = ?",
+            (key_id, user_id),
         )
-
         if not row:
             return False
 
-        # 先取消所有密钥的活动状态
+        provider = row["provider"] if "provider" in row.keys() else "grsai"
         db.execute_query(
-            "UPDATE api_keys SET is_active = 0 WHERE user_id = ?",
-            (user_id,)
+            "UPDATE api_keys SET is_active = 0 WHERE user_id = ? AND provider = ?",
+            (user_id, provider),
         )
-
-        # 设置指定密钥为活动状态
-        db.execute_query(
-            "UPDATE api_keys SET is_active = 1 WHERE id = ?",
-            (key_id,)
-        )
-
+        db.execute_query("UPDATE api_keys SET is_active = 1 WHERE id = ?", (key_id,))
         return True
 
     @classmethod
-    def get_decrypted_keys(cls, user_id: int, decrypt_func) -> Tuple[List[Dict], str]:
-        """获取解密后的密钥列表和活动密钥ID"""
+    def get_decrypted_keys(
+        cls,
+        user_id: int,
+        decrypt_func: Callable[[str], str],
+    ) -> Tuple[List[Dict], Dict[str, str]]:
+        """Return decrypted key list and active key ids by provider."""
         keys = cls.get_by_user_id(user_id)
-        decrypted = []
-        active_id = ""
+        decrypted: List[Dict] = []
+        active_by_provider: Dict[str, str] = {}
 
         for key in keys:
             decrypted_value = decrypt_func(key.value)
             if not decrypted_value:
                 continue
 
-            decrypted.append({
-                "id": key.id,
-                "value": decrypted_value,
-                "source": key.source
-            })
-
+            decrypted.append(
+                {
+                    "id": key.id,
+                    "provider": key.provider,
+                    "name": key.name,
+                    "base_url": key.base_url,
+                    "value": decrypted_value,
+                    "source": key.source,
+                    "created_at": key.created_at,
+                }
+            )
             if key.is_active:
-                active_id = key.id
+                active_by_provider[key.provider] = key.id
 
-        return decrypted, active_id
+        return decrypted, active_by_provider

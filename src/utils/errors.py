@@ -1,6 +1,7 @@
 """
 错误类定义
 """
+
 from typing import Optional
 
 

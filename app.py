@@ -1,7 +1,8 @@
-"""
-a.zhai's ToolBox - AI Service Middleware
+﻿"""
+SCIdrawer - AI Service Middleware
 面向对象重构版本
 """
+
 import os
 
 from flask import Flask
@@ -17,7 +18,7 @@ def create_app() -> Flask:
     # 创建Flask应用
     app = Flask(__name__)
     app.secret_key = config.app_secret_key
-    app.config['JSON_AS_ASCII'] = False
+    app.config["JSON_AS_ASCII"] = False
 
     # 注册蓝图
     app.register_blueprint(api_bp)
@@ -28,15 +29,16 @@ def create_app() -> Flask:
         """Add headers to both force latest IE rendering engine or Chrome Frame,
         and also to cache the rendered page for 10 minutes.
         """
-        if 'Content-Type' in response.headers:
-            if 'application/javascript' in response.headers['Content-Type']:
-                response.headers['Content-Type'] = 'application/javascript; charset=utf-8'
-            elif 'text/css' in response.headers['Content-Type']:
-                response.headers['Content-Type'] = 'text/css; charset=utf-8'
+        if "Content-Type" in response.headers:
+            if "application/javascript" in response.headers["Content-Type"]:
+                response.headers["Content-Type"] = "application/javascript; charset=utf-8"
+            elif "text/css" in response.headers["Content-Type"]:
+                response.headers["Content-Type"] = "text/css; charset=utf-8"
         return response
 
     # 确保默认用户存在
     from src.models.user import User
+
     User.ensure_default_user()
 
     return app
@@ -49,4 +51,5 @@ app = create_app()
 if __name__ == "__main__":
     config = get_config()
     port = int(os.getenv("PORT", str(config.port)))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    debug = os.getenv("FLASK_DEBUG", "0").lower() in ("1", "true", "yes")
+    app.run(host="0.0.0.0", port=port, debug=debug)

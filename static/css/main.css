@@ -1,43 +1,43 @@
-/* ============================================
-   a.zhai's ToolBox - 主样式文件
-   整合所有样式模块
+﻿/* ============================================
+   a.zhai's ToolBox - 涓绘牱寮忔枃浠?
+   鏁村悎鎵€鏈夋牱寮忔ā鍧?
    ============================================ */
 
-/* 1. 设计系统 - 基础设计令牌和工具类 */
+/* 1. 璁捐绯荤粺 - 鍩虹璁捐浠ょ墝鍜屽伐鍏风被 */
 @import url('design-system.css');
 
-/* 2. 组件库 - 可复用UI组件 */
+/* 2. 缁勪欢搴?- 鍙鐢║I缁勪欢 */
 @import url('components.css');
 
-/* 3. 布局系统 - 页面布局和结构 */
+/* 3. 甯冨眬绯荤粺 - 椤甸潰甯冨眬鍜岀粨鏋?*/
 @import url('layout.css');
 
-/* 4. 应用样式 - 特定页面和功能样式 */
+/* 4. 搴旂敤鏍峰紡 - 鐗瑰畾椤甸潰鍜屽姛鑳芥牱寮?*/
 @import url('app.css');
 
-/* ===== 全局样式覆盖和优化 ===== */
+/* ===== 鍏ㄥ眬鏍峰紡瑕嗙洊鍜屼紭鍖?===== */
 
-/* 优化字体渲染 */
+/* 浼樺寲瀛椾綋娓叉煋 */
 body {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* 优化图片和媒体 */
+/* 浼樺寲鍥剧墖鍜屽獟浣?*/
 img, video {
   max-width: 100%;
   height: auto;
   display: block;
 }
 
-/* 优化表单元素 */
+/* 浼樺寲琛ㄥ崟鍏冪礌 */
 input, button, textarea, select {
   font: inherit;
   color: inherit;
 }
 
-/* 优化链接 */
+/* 浼樺寲閾炬帴 */
 a {
   color: var(--color-primary);
   text-decoration: none;
@@ -48,7 +48,7 @@ a:hover {
   color: var(--color-primary-hover);
 }
 
-/* 优化代码块 */
+/* 浼樺寲浠ｇ爜鍧?*/
 code, pre {
   font-family: var(--font-family-mono);
   font-size: var(--font-size-sm);
@@ -63,7 +63,7 @@ pre {
   margin: var(--space-4) 0;
 }
 
-/* 优化列表 */
+/* 浼樺寲鍒楄〃 */
 ul, ol {
   padding-left: var(--space-6);
   margin-bottom: var(--space-4);
@@ -73,7 +73,7 @@ li {
   margin-bottom: var(--space-2);
 }
 
-/* 优化表格 */
+/* 浼樺寲琛ㄦ牸 */
 table {
   width: 100%;
   border-collapse: collapse;
@@ -91,7 +91,7 @@ th {
   font-weight: var(--font-weight-semibold);
 }
 
-/* 优化引用 */
+/* 浼樺寲寮曠敤 */
 blockquote {
   border-left: 3px solid var(--color-primary);
   padding-left: var(--space-4);
@@ -100,14 +100,14 @@ blockquote {
   font-style: italic;
 }
 
-/* 优化水平线 */
+/* 浼樺寲姘村钩绾?*/
 hr {
   border: none;
   border-top: 1px solid var(--color-border);
   margin: var(--space-6) 0;
 }
 
-/* 优化键盘快捷键显示 */
+/* 浼樺寲閿洏蹇嵎閿樉绀?*/
 kbd {
   font-family: var(--font-family-mono);
   font-size: var(--font-size-xs);
@@ -118,7 +118,7 @@ kbd {
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.1);
 }
 
-/* 优化细节元素 */
+/* 浼樺寲缁嗚妭鍏冪礌 */
 details {
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border);
@@ -137,7 +137,7 @@ details[open] summary {
   margin-bottom: var(--space-3);
 }
 
-/* 优化标记 */
+/* 浼樺寲鏍囪 */
 mark {
   background: rgba(245, 158, 11, 0.2);
   color: inherit;
@@ -145,13 +145,13 @@ mark {
   border-radius: var(--radius-xs);
 }
 
-/* 优化小文本 */
+/* 浼樺寲灏忔枃鏈?*/
 small {
   font-size: var(--font-size-xs);
   color: var(--color-text-tertiary);
 }
 
-/* 优化下标和上标 */
+/* 浼樺寲涓嬫爣鍜屼笂鏍?*/
 sub, sup {
   font-size: var(--font-size-xs);
   line-height: 0;
@@ -167,25 +167,25 @@ sub {
   bottom: -0.25em;
 }
 
-/* 优化选择文本 */
+/* 浼樺寲閫夋嫨鏂囨湰 */
 ::selection {
-  background: rgba(139, 92, 246, 0.3);
+  background: rgba(185, 113, 63, 0.28);
   color: inherit;
 }
 
-/* 优化占位符 */
+/* 浼樺寲鍗犱綅绗?*/
 ::placeholder {
   color: var(--color-text-muted);
   opacity: 1;
 }
 
-/* 优化禁用状态 */
+/* 浼樺寲绂佺敤鐘舵€?*/
 :disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-/* 优化焦点状态 */
+/* 浼樺寲鐒︾偣鐘舵€?*/
 :focus {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
@@ -195,7 +195,7 @@ sub {
   outline: none;
 }
 
-/* 优化打印样式 */
+/* 浼樺寲鎵撳嵃鏍峰紡 */
 @media print {
   * {
     background: transparent !important;
@@ -243,9 +243,9 @@ sub {
   }
 }
 
-/* ===== 性能优化 ===== */
+/* ===== 鎬ц兘浼樺寲 ===== */
 
-/* 减少重绘和重排 */
+/* 鍑忓皯閲嶇粯鍜岄噸鎺?*/
 .will-change-transform {
   will-change: transform;
 }
@@ -254,14 +254,14 @@ sub {
   will-change: opacity;
 }
 
-/* 硬件加速 */
+/* 纭欢鍔犻€?*/
 .gpu-accelerated {
   transform: translateZ(0);
   backface-visibility: hidden;
   perspective: 1000px;
 }
 
-/* 优化动画性能 */
+/* 浼樺寲鍔ㄧ敾鎬ц兘 */
 .animate-once {
   animation-fill-mode: forwards;
 }
@@ -270,9 +270,9 @@ sub {
   animation-iteration-count: infinite;
 }
 
-/* ===== 辅助功能 ===== */
+/* ===== 杈呭姪鍔熻兘 ===== */
 
-/* 屏幕阅读器专用 */
+/* 灞忓箷闃呰鍣ㄤ笓鐢?*/
 .sr-only {
   position: absolute;
   width: 1px;
@@ -285,7 +285,7 @@ sub {
   border: 0;
 }
 
-/* 高对比度模式 */
+/* 楂樺姣斿害妯″紡 */
 @media (prefers-contrast: high) {
   :root {
     --color-border: rgba(255, 255, 255, 0.3);
@@ -293,7 +293,7 @@ sub {
   }
 }
 
-/* 减少动画 */
+/* 鍑忓皯鍔ㄧ敾 */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -305,19 +305,19 @@ sub {
   }
 }
 
-/* ===== 自定义属性覆盖 ===== */
+/* ===== 鑷畾涔夊睘鎬ц鐩?===== */
 
-/* 深色主题优化 */
+/* 娣辫壊涓婚浼樺寲 */
 [data-theme="dark"] {
   color-scheme: dark;
 }
 
-/* 浅色主题优化 */
+/* 娴呰壊涓婚浼樺寲 */
 [data-theme="light"] {
   color-scheme: light;
 }
 
-/* 高对比度主题 */
+/* 楂樺姣斿害涓婚 */
 [data-theme="high-contrast"] {
   --color-bg-primary: #000;
   --color-bg-secondary: #111;
@@ -328,9 +328,9 @@ sub {
   color-scheme: dark;
 }
 
-/* ===== 浏览器特定修复 ===== */
+/* ===== 娴忚鍣ㄧ壒瀹氫慨澶?===== */
 
-/* Firefox 滚动条 */
+/* Firefox 婊氬姩鏉?*/
 @supports (scrollbar-width: thin) {
   * {
     scrollbar-width: thin;
@@ -338,21 +338,21 @@ sub {
   }
 }
 
-/* Safari 输入框修复 */
+/* Safari 杈撳叆妗嗕慨澶?*/
 input[type="search"] {
   -webkit-appearance: none;
 }
 
-/* Edge 滚动条 */
+/* Edge 婊氬姩鏉?*/
 @supports (-ms-ime-align: auto) {
   .scrollable {
     -ms-overflow-style: -ms-autohiding-scrollbar;
   }
 }
 
-/* ===== 加载状态 ===== */
+/* ===== 鍔犺浇鐘舵€?===== */
 
-/* 应用加载 */
+/* 搴旂敤鍔犺浇 */
 .app-loading {
   position: fixed;
   top: 0;
@@ -383,7 +383,7 @@ input[type="search"] {
   animation: pulse 2s infinite;
 }
 
-/* ===== 错误状态 ===== */
+/* ===== 閿欒鐘舵€?===== */
 
 .error-boundary {
   display: flex;
@@ -416,7 +416,7 @@ input[type="search"] {
   max-width: 32rem;
 }
 
-/* ===== 离线状态 ===== */
+/* ===== 绂荤嚎鐘舵€?===== */
 
 .offline-indicator {
   position: fixed;
@@ -434,11 +434,11 @@ input[type="search"] {
 }
 
 .offline-indicator::before {
-  content: '⚠ ';
+  content: '鈿?';
   margin-right: var(--space-2);
 }
 
-/* ===== 更新提示 ===== */
+/* ===== 鏇存柊鎻愮ず ===== */
 
 .update-available {
   position: fixed;

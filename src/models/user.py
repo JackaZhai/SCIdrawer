@@ -1,6 +1,7 @@
 """
 用户模型
 """
+
 import base64
 import os
 from datetime import datetime
@@ -13,12 +14,14 @@ from .base import BaseModel
 class User(BaseModel):
     """用户模型类"""
 
-    def __init__(self,
-                 id: Optional[int] = None,
-                 username: str = "",
-                 salt: bytes = b"",
-                 password_hash: str = "",
-                 created_at: Optional[str] = None):
+    def __init__(
+        self,
+        id: Optional[int] = None,
+        username: str = "",
+        salt: bytes = b"",
+        password_hash: str = "",
+        created_at: Optional[str] = None,
+    ):
         self.id = id
         self.username = username
         self.salt = salt
@@ -42,21 +45,17 @@ class User(BaseModel):
         """
 
     @classmethod
-    def from_row(cls, row) -> 'User':
+    def from_row(cls, row) -> "User":
         return cls(
             id=row["id"],
             username=row["username"],
             salt=row["salt"],
             password_hash=row["password_hash"],
-            created_at=row["created_at"]
+            created_at=row["created_at"],
         )
 
     def to_dict(self) -> Dict:
-        return {
-            "id": self.id,
-            "username": self.username,
-            "created_at": self.created_at
-        }
+        return {"id": self.id, "username": self.username, "created_at": self.created_at}
 
     @staticmethod
     def generate_salt() -> bytes:
@@ -81,37 +80,36 @@ class User(BaseModel):
         return self.hash_password(password, self.salt) == self.password_hash
 
     @classmethod
-    def get_by_username(cls, username: str) -> Optional['User']:
+    def get_by_username(cls, username: str) -> Optional["User"]:
         """根据用户名获取用户"""
         from ..services.database import get_db_manager
+
         db = get_db_manager()
-        row = db.fetch_one(
-            "SELECT * FROM users WHERE username = ?",
-            (username,)
-        )
+        row = db.fetch_one("SELECT * FROM users WHERE username = ?", (username,))
         return cls.from_row(row) if row else None
 
     def save(self) -> None:
         """保存用户到数据库"""
         from ..services.database import get_db_manager
+
         db = get_db_manager()
 
         if self.id is None:
             # 插入新用户
             cursor = db.execute_query(
                 "INSERT INTO users (username, salt, password_hash) VALUES (?, ?, ?) RETURNING id",
-                (self.username, self.salt, self.password_hash)
+                (self.username, self.salt, self.password_hash),
             )
             self.id = cursor.fetchone()["id"]
         else:
             # 更新现有用户
             db.execute_query(
                 "UPDATE users SET username = ?, salt = ?, password_hash = ? WHERE id = ?",
-                (self.username, self.salt, self.password_hash, self.id)
+                (self.username, self.salt, self.password_hash, self.id),
             )
 
     @classmethod
-    def create_default_user(cls, username: str, password: str) -> 'User':
+    def create_default_user(cls, username: str, password: str) -> "User":
         """创建默认用户"""
         user = cls(username=username)
         user.set_password(password)
@@ -119,11 +117,12 @@ class User(BaseModel):
         return user
 
     @classmethod
-    def ensure_default_user(cls,
-                           username: Optional[str] = None,
-                           password: Optional[str] = None) -> 'User':
+    def ensure_default_user(
+        cls, username: Optional[str] = None, password: Optional[str] = None
+    ) -> "User":
         """确保默认用户存在"""
         from ..config import Config
+
         config = Config()
 
         default_username = username or config.seed_username

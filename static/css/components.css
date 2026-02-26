@@ -1,8 +1,8 @@
-/* ============================================
-   a.zhai's ToolBox - 组件库
+﻿/* ============================================
+   a.zhai's ToolBox - 缁勪欢搴?
    ============================================ */
 
-/* ===== 按钮组件 ===== */
+/* ===== 鎸夐挳缁勪欢 ===== */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -49,7 +49,7 @@
   pointer-events: none;
 }
 
-/* 按钮变体 */
+/* 鎸夐挳鍙樹綋 */
 .btn-primary {
   background: var(--gradient-primary);
   color: white;
@@ -59,7 +59,7 @@
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 15px 30px rgba(137, 207, 240, 0.5), var(--shadow-glow);
+  box-shadow: 0 15px 30px rgba(185, 113, 63, 0.28), var(--shadow-glow);
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
 }
 
@@ -106,7 +106,7 @@
 }
 
 .btn-danger:hover {
-  background: #FF9E9E; /* 更浅的珊瑚色 */
+  background: #FF9E9E; /* 鏇存祬鐨勭強鐟氳壊 */
 }
 
 .btn-success {
@@ -116,10 +116,10 @@
 }
 
 .btn-success:hover {
-  background: #5ACD5A; /* 更深的柔和绿色 */
+  background: #5ACD5A; /* 鏇存繁鐨勬煍鍜岀豢鑹?*/
 }
 
-/* 按钮尺寸 */
+/* 鎸夐挳灏哄 */
 .btn-xs {
   padding: var(--space-1) var(--space-2);
   font-size: var(--font-size-xs);
@@ -140,7 +140,7 @@
   font-size: var(--font-size-lg);
 }
 
-/* 图标按钮 */
+/* 鍥炬爣鎸夐挳 */
 .btn-icon {
   width: 2.5rem;
   height: 2.5rem;
@@ -158,7 +158,7 @@
   height: 3rem;
 }
 
-/* 按钮组 */
+/* 鎸夐挳缁?*/
 .btn-group {
   display: inline-flex;
   border-radius: var(--radius-md);
@@ -176,7 +176,7 @@
   border-right: none;
 }
 
-/* ===== 表单组件 ===== */
+/* ===== 琛ㄥ崟缁勪欢 ===== */
 .form-group {
   display: flex;
   flex-direction: column;
@@ -217,7 +217,7 @@
 .form-select:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+  box-shadow: 0 0 0 3px rgba(185, 113, 63, 0.14);
   background: var(--color-bg-surface-hover);
 }
 
@@ -247,7 +247,7 @@
   padding-right: var(--space-8);
 }
 
-/* 复选框和单选框 */
+/* 澶嶉€夋鍜屽崟閫夋 */
 .checkbox,
 .radio {
   display: flex;
@@ -315,7 +315,7 @@
   color: var(--color-text-secondary);
 }
 
-/* 开关 */
+/* 寮€鍏?*/
 .switch {
   position: relative;
   display: inline-block;
@@ -364,7 +364,7 @@
   background: white;
 }
 
-/* 表单提示 */
+/* 琛ㄥ崟鎻愮ず */
 .form-hint {
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
@@ -377,7 +377,7 @@
   margin-top: var(--space-1);
 }
 
-/* ===== 卡片组件 ===== */
+/* ===== 鍗＄墖缁勪欢 ===== */
 .card {
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border);
@@ -426,7 +426,7 @@
   align-items: center;
 }
 
-/* 卡片变体 */
+/* 鍗＄墖鍙樹綋 */
 .card-primary {
   background: var(--gradient-primary);
   color: white;
@@ -452,7 +452,7 @@
   box-shadow: var(--glass-shadow);
 }
 
-/* ===== 徽章组件 ===== */
+/* ===== 寰界珷缁勪欢 ===== */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -471,12 +471,12 @@
 }
 
 .badge-secondary {
-  background: rgba(255, 183, 197, 0.1);
+  background: rgba(212, 154, 105, 0.12);
   color: var(--color-secondary);
 }
 
 .badge-accent {
-  background: rgba(152, 251, 152, 0.1);
+  background: rgba(143, 106, 79, 0.12);
   color: var(--color-accent);
 }
 
@@ -505,7 +505,7 @@
   border: 1px solid currentColor;
 }
 
-/* ===== 警告组件 ===== */
+/* ===== 璀﹀憡缁勪欢 ===== */
 .alert {
   display: flex;
   align-items: flex-start;
@@ -548,7 +548,7 @@
   background: rgba(0, 0, 0, 0.05);
 }
 
-/* 警告变体 */
+/* 璀﹀憡鍙樹綋 */
 .alert-info {
   background: rgba(119, 181, 254, 0.1);
   border: 1px solid rgba(119, 181, 254, 0.2);
@@ -573,7 +573,7 @@
   color: var(--color-error);
 }
 
-/* ===== 进度条组件 ===== */
+/* ===== 杩涘害鏉＄粍浠?===== */
 .progress {
   width: 100%;
   height: 0.5rem;
@@ -626,7 +626,7 @@
   color: var(--color-text-secondary);
 }
 
-/* ===== 骨架屏组件 ===== */
+/* ===== 楠ㄦ灦灞忕粍浠?===== */
 .skeleton {
   background: linear-gradient(
     90deg,
@@ -664,7 +664,7 @@
   height: 8rem;
 }
 
-/* ===== 模态框组件 ===== */
+/* ===== 妯℃€佹缁勪欢 ===== */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -745,7 +745,7 @@
   gap: var(--space-3);
 }
 
-/* ===== 标签页组件 ===== */
+/* ===== 鏍囩椤电粍浠?===== */
 .tabs {
   display: flex;
   border-bottom: 1px solid var(--color-border);
@@ -791,7 +791,7 @@
   display: block;
 }
 
-/* ===== 下拉菜单组件 ===== */
+/* ===== 涓嬫媺鑿滃崟缁勪欢 ===== */
 .dropdown {
   position: relative;
   display: inline-block;
@@ -856,7 +856,7 @@
   margin: var(--space-2) 0;
 }
 
-/* ===== 工具提示组件 ===== */
+/* ===== 宸ュ叿鎻愮ず缁勪欢 ===== */
 .tooltip {
   position: relative;
   display: inline-block;
@@ -896,7 +896,7 @@
   visibility: visible;
 }
 
-/* ===== 空状态组件 ===== */
+/* ===== 绌虹姸鎬佺粍浠?===== */
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -926,7 +926,7 @@
   margin-bottom: var(--space-6);
 }
 
-/* ===== 加载状态组件 ===== */
+/* ===== 鍔犺浇鐘舵€佺粍浠?===== */
 .loading {
   display: inline-flex;
   align-items: center;
@@ -952,7 +952,7 @@
   color: var(--color-text-secondary);
 }
 
-/* 全屏加载 */
+/* 鍏ㄥ睆鍔犺浇 */
 .loading-overlay {
   position: fixed;
   top: 0;
@@ -977,3 +977,4 @@
   margin-top: var(--space-4);
   font-size: var(--font-size-base);
 }
+

@@ -1,15 +1,16 @@
-"""
+﻿"""
 数据库连接管理
 """
+
 import os
 import sqlite3
-from typing import Optional
 from contextlib import contextmanager
+from typing import Optional
 
-from ..models.base import BaseModel
-from ..models.user import User
 from ..models.api_key import ApiKey
+from ..models.provider_config import ProviderConfig
 from ..models.usage_stats import UsageStats
+from ..models.user import User
 
 
 class DatabaseManager:
@@ -43,6 +44,7 @@ class DatabaseManager:
             User.init_table(conn)
             ApiKey.init_table(conn)
             UsageStats.init_table(conn)
+            ProviderConfig.init_table(conn)
             conn.commit()
 
     def execute_query(self, query: str, params: tuple = ()) -> sqlite3.Cursor:

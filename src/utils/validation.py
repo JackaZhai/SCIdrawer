@@ -1,6 +1,7 @@
 """
 验证工具
 """
+
 from typing import List, Optional
 
 from .errors import ValidationError
@@ -41,9 +42,7 @@ class ValidationService:
                 approx_size = len(encoded) * 3 // 4
                 if approx_size > self.max_reference_image_bytes:
                     max_mb = self.max_reference_image_bytes // (1024 * 1024)
-                    raise ValidationError(
-                        f"单张参考图大小超出限制（最大 {max_mb} MB）"
-                    )
+                    raise ValidationError(f"单张参考图大小超出限制（最大 {max_mb} MB）")
 
     def validate_prompt(self, prompt: str) -> None:
         """验证提示词"""
@@ -75,9 +74,10 @@ def get_validation_service() -> ValidationService:
     global _validation_service
     if _validation_service is None:
         from ..config import get_config
+
         config = get_config()
         _validation_service = ValidationService(
             max_reference_images=config.max_reference_images,
-            max_reference_image_bytes=config.max_reference_image_bytes
+            max_reference_image_bytes=config.max_reference_image_bytes,
         )
     return _validation_service
