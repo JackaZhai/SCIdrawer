@@ -1,8 +1,9 @@
 # 项目结构说明
 
-整理后的 SCIdrawer 项目结构
+SCIdrawer 项目结构
 
 ## 根目录文件
+
 - `app.py` - Flask 主应用文件
 - `requirements.txt` - Python 依赖
 - `local_config.py` - 本地开发配置（可选）
@@ -16,6 +17,7 @@
 ## 目录结构
 
 ### `src/` - 源代码目录
+
 ```
 src/
 ├── __init__.py
@@ -45,6 +47,7 @@ src/
 ```
 
 ### `static/` - 静态文件
+
 ```
 static/
 ├── css/                 # 样式文件
@@ -59,6 +62,7 @@ static/
 ```
 
 ### `templates/` - HTML模板
+
 ```
 templates/
 ├── index.html          # 主页面
@@ -66,6 +70,7 @@ templates/
 ```
 
 ### `scripts/` - 部署和运维脚本
+
 ```
 scripts/
 ├── deploy.sh           # 完整部署脚本
@@ -75,18 +80,21 @@ scripts/
 ```
 
 ### `tests/` - 测试文件
+
 ```
 tests/
 └── test-ui.html        # UI测试页面
 ```
 
 ### `backup/` - 备份文件
+
 ```
 backup/
 └── index-new.html      # 旧版模板备份
 ```
 
 ### 运行时目录（不提交到Git）
+
 - `data/` - 应用数据（数据库等）
 - `__pycache__/` - Python字节码缓存
 - `.venv/` - Python虚拟环境
@@ -101,6 +109,7 @@ backup/
 ## 架构设计
 
 项目采用面向对象设计模式：
+
 - 单例模式：配置、数据库、服务等
 - 工厂模式：Flask应用创建
 - 模型-服务-控制器：清晰的MVC架构
