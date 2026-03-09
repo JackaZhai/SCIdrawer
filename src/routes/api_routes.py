@@ -37,17 +37,19 @@ def profile() -> Any:
 
     config = get_config()
 
+    usage = UsageStats.get_by_user_id(user_id) if user_id else None
+    usage_payload = {
+        "totalCalls": usage.total_calls if usage else 0,
+        "lastUsedAt": usage.last_used_at if usage else None,
+    }
+
     return jsonify(
         {
             "hasKey": bool(has_key),
             "activeKeyMask": api_key_service.encryption.mask_key(active_value),
             "apiHost": config.api_host,
             "activeBaseUrl": api_key_service.get_active_base_url(user_id, provider="grsai"),
-            "usage": (
-                UsageStats.get_by_user_id(user_id).to_dict()
-                if user_id
-                else {"totalCalls": 0, "lastUsedAt": None}
-            ),
+            "usage": usage_payload,
         }
     )
 
@@ -309,7 +311,11 @@ def index() -> Any:
 
     user_id = auth_service.get_current_user_id()
     api_key_service.bootstrap_api_keys(user_id)
-    has_api_key = bool(api_key_service.get_active_api_key_value(user_id))
+    if user_id:
+        store = api_key_service.serialize_keys(int(user_id))
+        has_api_key = any(item.get("isActive") for item in (store.get("keys") or []))
+    else:
+        has_api_key = False
 
     return render_template("index.html", api_host=config.api_host, has_api_key=has_api_key)
 

@@ -1,12 +1,67 @@
-﻿{
+{
   "name": "scidrawer-desktop",
   "private": true,
   "version": "0.1.0",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "package:backend": "node ./scripts/package-backend.js",
+    "build:win": "npm run package:backend && electron-builder --win nsis",
+    "build:portable": "npm run package:backend && electron-builder --win portable"
   },
   "devDependencies": {
-    "electron": "^32.0.0"
+    "electron": "^32.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.scidrawer.desktop",
+    "productName": "SCIdrawer",
+    "asar": true,
+    "directories": {
+      "output": "dist-installer"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "dist-backend/scidrawer-backend.exe",
+        "to": "backend/scidrawer-backend.exe"
+      },
+      {
+        "from": "../integrations",
+        "to": "integrations",
+        "filter": [
+          "**/*",
+          "!Edit-Banana/sam3/sam3.pt",
+          "!Edit-Banana/sam3/model.safetensors"
+        ]
+      },
+      {
+        "from": "../static/app-icon.ico",
+        "to": "static/app-icon.ico"
+      }
+    ],
+    "win": {
+      "icon": "../static/app-icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "SCIdrawer-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "useZip": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
   }
 }

@@ -47,12 +47,19 @@ class DatabaseManager:
             ProviderConfig.init_table(conn)
             conn.commit()
 
-    def execute_query(self, query: str, params: tuple = ()) -> sqlite3.Cursor:
-        """执行查询"""
+    def execute_query(self, query: str, params: tuple = ()) -> int:
+        """执行写操作语句，返回受影响行数"""
         with self.get_connection() as conn:
             cursor = conn.execute(query, params)
             conn.commit()
-            return cursor
+            return cursor.rowcount
+
+    def execute_insert(self, query: str, params: tuple = ()) -> int:
+        """执行插入语句，返回新记录ID"""
+        with self.get_connection() as conn:
+            cursor = conn.execute(query, params)
+            conn.commit()
+            return int(cursor.lastrowid or 0)
 
     def execute_many(self, query: str, params_list: list) -> None:
         """执行多个参数相同的查询"""

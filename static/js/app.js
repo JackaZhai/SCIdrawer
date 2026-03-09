@@ -1626,10 +1626,18 @@ async function loadInitialData() {
                     DOM.lastUsedTime.textContent = new Date(profile.usage.lastUsedAt).toLocaleString();
                 }
             } else {
-                AppState.hasKey = false;
+                AppState.hasKey = !!(
+                    AppState.keyStore &&
+                    AppState.keyStore.keys &&
+                    AppState.keyStore.keys.some(k => k && k.isActive)
+                );
             }
         } catch (e) {
-            AppState.hasKey = false;
+            AppState.hasKey = !!(
+                AppState.keyStore &&
+                AppState.keyStore.keys &&
+                AppState.keyStore.keys.some(k => k && k.isActive)
+            );
         }
 
         if (DOM.currentKeyStatus) {
@@ -2520,9 +2528,11 @@ async function loadApiKeys() {
 
         // 更新状态区
         const anyActive = data && data.keys && data.keys.some(k => k && k.isActive);
+        AppState.hasKey = !!anyActive;
         AppState.keyStore = data;
         refreshGenerationModelOptions(data);
         syncApiKeyBaseUrlByProvider();
+        updateDashboardKeyStatus();
         if (DOM.currentKeyStatus) {
             DOM.currentKeyStatus.textContent = anyActive ? '已设置' : '未设置';
             DOM.currentKeyStatus.className = anyActive ? 'badge badge-success' : 'badge badge-secondary';
@@ -2530,6 +2540,8 @@ async function loadApiKeys() {
 
         renderApiKeysTable(data);
     } catch (e) {
+        AppState.hasKey = false;
+        updateDashboardKeyStatus();
         DOM.keysTableBody.innerHTML = `
             <tr>
                 <td colspan="${colCount}" class="text-center py-8">

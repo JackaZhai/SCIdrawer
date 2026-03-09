@@ -61,6 +61,11 @@ htmlcov/
 # Node / desktop
 electron/node_modules/
 node_modules/
+electron/.backend-build-venv/
+electron/build-backend/
+electron/dist-backend/
+electron/dist-installer/
+electron/scidrawer-backend.spec
 
 # Build artifacts
 build/

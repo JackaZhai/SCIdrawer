@@ -39,7 +39,11 @@ class PaperBananaJob:
 class PaperBananaService:
     def __init__(self):
         self.config = get_config()
-        self.root = Path(__file__).resolve().parents[2] / "integrations" / "PaperBanana"
+        env_root = (os.getenv("PAPERBANANA_ROOT") or "").strip()
+        if env_root:
+            self.root = Path(env_root).expanduser().resolve()
+        else:
+            self.root = Path(__file__).resolve().parents[2] / "integrations" / "PaperBanana"
         self.jobs_root = Path(self.config.data_dir) / "paperbanana" / "jobs"
         self.jobs_root.mkdir(parents=True, exist_ok=True)
         self._lock = threading.Lock()

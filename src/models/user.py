@@ -96,11 +96,10 @@ class User(BaseModel):
 
         if self.id is None:
             # 插入新用户
-            cursor = db.execute_query(
-                "INSERT INTO users (username, salt, password_hash) VALUES (?, ?, ?) RETURNING id",
+            self.id = db.execute_insert(
+                "INSERT INTO users (username, salt, password_hash) VALUES (?, ?, ?)",
                 (self.username, self.salt, self.password_hash),
             )
-            self.id = cursor.fetchone()["id"]
         else:
             # 更新现有用户
             db.execute_query(
