@@ -98,6 +98,12 @@ CI 默认检查：
 - [开源检查清单](./doc/OPEN_SOURCE_CHECKLIST.md)
 - [用户手册](./doc/USER_MANUAL.md)
 
+## 模型服务说明（真不是广告）
+
+- `GRSAI` 连接地址（API Base URL）：`https://grsaiapi.com/v1`
+- 这个链接放在这里是为了“开箱即连”，不是广告位招租。
+- 如果你有自己的服务地址，也完全可以替换；SCIdrawer 不会因为你“移情别恋”就闹脾气。
+
 ## 许可证
 
 MIT，见 [LICENSE](./LICENSE)。

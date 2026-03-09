@@ -6,14 +6,26 @@
 const AppState = {
     currentPage: 'dashboard',
     theme: localStorage.getItem('theme') || 'dark',
+    language: localStorage.getItem('uiLanguage') || 'zh-CN',
     hasKey: false,
     keyStore: null,
     apiHost: '',
     activeBaseUrl: '',
     isLoading: false,
     currentGeneration: null,
+    paperStageSnapshot: null,
     notifications: [],
     referenceImages: []
+};
+
+const WorkflowGraphState = {
+    stageOrder: [],
+    renderQueued: false,
+    hideTimers: new Map(),
+    resizeBound: false,
+    resizeObserver: null,
+    criticRounds: 0,
+    activeCriticRound: 1
 };
 
 // DOM 元素缓存
@@ -44,12 +56,14 @@ const DOM = {
     generationImageModelSelect: document.getElementById('generationImageModelSelect'),
     generationExpModeSelect: document.getElementById('generationExpModeSelect'),
     generationRetrievalSelect: document.getElementById('generationRetrievalSelect'),
+    generationImageSizeSelect: document.getElementById('generationImageSizeSelect'),
     generationCriticRoundsInput: document.getElementById('generationCriticRoundsInput'),
     generationCriticEnabledCheck: document.getElementById('generationCriticEnabledCheck'),
     generationEvalEnabledCheck: document.getElementById('generationEvalEnabledCheck'),
     generationModelSection: document.getElementById('generationModelSection'),
     referenceImagesInput: document.getElementById('referenceImagesInput'),
     referenceImagesList: document.getElementById('referenceImagesList'),
+    generationPreviewContainer: document.getElementById('generationPreviewContainer'),
     generateBtn: document.getElementById('generateBtn'),
     resetFormBtn: document.getElementById('resetFormBtn'),
     progressBar: document.getElementById('progressBar'),
@@ -58,6 +72,9 @@ const DOM = {
     paperStageChip: document.getElementById('paperStageChip'),
     paperStageMessage: document.getElementById('paperStageMessage'),
     paperTaskIdText: document.getElementById('paperTaskIdText'),
+    paperWorkflowGraph: document.getElementById('paperWorkflowGraph'),
+    paperWorkflowArrows: document.getElementById('paperWorkflowArrows'),
+    paperWorkflowParticles: document.getElementById('paperWorkflowParticles'),
     paperStageList: document.getElementById('paperStageList'),
     paperStageItems: document.querySelectorAll('.paper-stage-item'),
     generationWorkflowSummary: document.getElementById('generationWorkflowSummary'),
@@ -84,43 +101,248 @@ const DOM = {
     // 设置
     timeoutSelect: document.getElementById('timeoutSelect'),
     retrySelect: document.getElementById('retrySelect'),
+    uiLanguageSelect: document.getElementById('uiLanguageSelect'),
 
 };
+
+const I18N_STRINGS = {
+    'zh-CN': {
+        'nav.dashboard': '工作台',
+        'nav.image_generation': '图像生成',
+        'nav.api_keys': 'API 设置',
+        'nav.edit_banana': 'Edit Banana',
+        'nav.settings': '设置',
+        'page.dashboard': '工作台',
+        'page.image_generation': '图像生成',
+        'page.api_keys': 'API 设置',
+        'page.edit_banana': 'Edit Banana',
+        'page.settings': '系统设置',
+        'action.toggle_theme': '切换主题',
+        'window.minimize': '最小化',
+        'window.maximize': '最大化/还原',
+        'window.close': '关闭',
+        'settings.title': '设置项',
+        'settings.general': '常规设置',
+        'settings.language.name': '界面语言',
+        'settings.language.description': '选择应用程序显示语言',
+        'settings.language.option_zh': '简体中文',
+        'settings.language.option_en': 'English',
+        'settings.theme.name': '主题模式',
+        'settings.theme.description': '选择应用程序颜色主题',
+        'settings.theme.dark': '深色',
+        'settings.theme.light': '浅色',
+        'settings.note': '说明',
+        'settings.api_model.name': 'API 与模型配置',
+        'settings.api_model.description': '已迁移到“API 设置”页面统一管理。',
+        'paper.waiting': '等待开始',
+        'paper.stage_prefix': '当前阶段：{stage}',
+        'paper.processing_fallback': '处理中',
+        'paper.chip.idle': '未开始',
+        'paper.chip.running': '进行中',
+        'paper.chip.failed': '失败',
+        'paper.chip.succeeded': '完成',
+        'paper.message.processing': '处理中...',
+        'paper.message.idle_hint': '提交任务后会显示 PaperBanana 当前处理阶段。',
+        'paper.message.task_submitted_waiting': '任务已提交，等待 PaperBanana 启动...',
+        'paper.message.poll_timeout': '轮询超时，任务仍在后台执行，请稍后查询结果',
+        'paper.message.task_canceled': '任务已取消',
+        'paper.message.generation_done': '图像生成完成',
+        'paper.task_id': '任务ID：{id}',
+        'paper.task_id_empty': '任务ID：--',
+        'workflow.summary.prefix': '当前流程预览：{expLabel} · {criticText} · {evalText} · {retrievalText}',
+        'workflow.summary.critic_on': '审图 {rounds} 轮',
+        'workflow.summary.critic_off': '审图关闭',
+        'workflow.summary.eval_on': '评估开启',
+        'workflow.summary.eval_off': '评估关闭',
+        'workflow.summary.retrieval_default': '检索默认',
+        'workflow.summary.retrieval_value': '检索={retrieval}',
+        'workflow.exp.vanilla': 'Vanilla（直接生图）',
+        'workflow.exp.planner': 'Planner + 生图',
+        'workflow.exp.planner_stylist': 'Planner + Stylist + 生图',
+        'workflow.exp.planner_critic': 'Planner + Critic',
+        'workflow.exp.demo_full': 'Demo Full',
+        'workflow.exp.full': 'Full',
+        'stage.queued': '排队',
+        'stage.initializing': '初始化',
+        'stage.loading_agents': '加载 Agent',
+        'stage.processing': '生成推理',
+        'stage.processing_retriever': '检索参考',
+        'stage.processing_planner': '规划内容',
+        'stage.processing_stylist': '风格优化',
+        'stage.processing_visualizer': '执行生图',
+        'stage.processing_critic': '批评迭代',
+        'stage.processing_eval': '评估整理',
+        'stage.saving': '写入结果',
+        'stage.completed': '完成',
+        'stage.failed': '失败',
+        'stage.critic_round': '第{round}次审图'
+    },
+    'en-US': {
+        'nav.dashboard': 'Dashboard',
+        'nav.image_generation': 'Image Generation',
+        'nav.api_keys': 'API Settings',
+        'nav.edit_banana': 'Edit Banana',
+        'nav.settings': 'Settings',
+        'page.dashboard': 'Dashboard',
+        'page.image_generation': 'Image Generation',
+        'page.api_keys': 'API Settings',
+        'page.edit_banana': 'Edit Banana',
+        'page.settings': 'System Settings',
+        'action.toggle_theme': 'Toggle theme',
+        'window.minimize': 'Minimize',
+        'window.maximize': 'Maximize/Restore',
+        'window.close': 'Close',
+        'settings.title': 'Settings',
+        'settings.general': 'General',
+        'settings.language.name': 'Interface Language',
+        'settings.language.description': 'Choose application display language',
+        'settings.language.option_zh': 'Simplified Chinese',
+        'settings.language.option_en': 'English',
+        'settings.theme.name': 'Theme Mode',
+        'settings.theme.description': 'Choose application color theme',
+        'settings.theme.dark': 'Dark',
+        'settings.theme.light': 'Light',
+        'settings.note': 'Notes',
+        'settings.api_model.name': 'API and Model Configuration',
+        'settings.api_model.description': 'Moved to "API Settings" for unified management.',
+        'paper.waiting': 'Waiting to start',
+        'paper.stage_prefix': 'Current Stage: {stage}',
+        'paper.processing_fallback': 'Processing',
+        'paper.chip.idle': 'Idle',
+        'paper.chip.running': 'Running',
+        'paper.chip.failed': 'Failed',
+        'paper.chip.succeeded': 'Done',
+        'paper.message.processing': 'Processing...',
+        'paper.message.idle_hint': 'PaperBanana stages will appear after submitting a task.',
+        'paper.message.task_submitted_waiting': 'Task submitted. Waiting for PaperBanana to start...',
+        'paper.message.poll_timeout': 'Polling timed out. The task is still running in the background.',
+        'paper.message.task_canceled': 'Task canceled',
+        'paper.message.generation_done': 'Image generation completed',
+        'paper.task_id': 'Task ID: {id}',
+        'paper.task_id_empty': 'Task ID: --',
+        'workflow.summary.prefix': 'Workflow Preview: {expLabel} · {criticText} · {evalText} · {retrievalText}',
+        'workflow.summary.critic_on': 'Critic {rounds} rounds',
+        'workflow.summary.critic_off': 'Critic off',
+        'workflow.summary.eval_on': 'Eval on',
+        'workflow.summary.eval_off': 'Eval off',
+        'workflow.summary.retrieval_default': 'Retrieval default',
+        'workflow.summary.retrieval_value': 'Retrieval={retrieval}',
+        'workflow.exp.vanilla': 'Vanilla (direct generation)',
+        'workflow.exp.planner': 'Planner + Generation',
+        'workflow.exp.planner_stylist': 'Planner + Stylist + Generation',
+        'workflow.exp.planner_critic': 'Planner + Critic',
+        'workflow.exp.demo_full': 'Demo Full',
+        'workflow.exp.full': 'Full',
+        'stage.queued': 'Queued',
+        'stage.initializing': 'Initializing',
+        'stage.loading_agents': 'Loading Agents',
+        'stage.processing': 'Inference',
+        'stage.processing_retriever': 'Reference Retrieval',
+        'stage.processing_planner': 'Planning',
+        'stage.processing_stylist': 'Styling',
+        'stage.processing_visualizer': 'Image Generation',
+        'stage.processing_critic': 'Critic Iteration',
+        'stage.processing_eval': 'Evaluation',
+        'stage.saving': 'Saving',
+        'stage.completed': 'Completed',
+        'stage.failed': 'Failed',
+        'stage.critic_round': 'Critic Round {round}'
+    }
+};
+
+function formatI18n(template, vars = {}) {
+    return String(template || '').replace(/\{(\w+)\}/g, (_, key) => {
+        const value = vars[key];
+        return value === undefined || value === null ? '' : String(value);
+    });
+}
+
+function t(key, vars = null) {
+    const lang = (AppState.language && I18N_STRINGS[AppState.language]) ? AppState.language : 'zh-CN';
+    const table = I18N_STRINGS[lang] || {};
+    const fallbackTable = I18N_STRINGS['zh-CN'] || {};
+    const raw = table[key] !== undefined ? table[key] : (fallbackTable[key] !== undefined ? fallbackTable[key] : key);
+    return vars ? formatI18n(raw, vars) : raw;
+}
+
+function applyI18nToDom() {
+    document.querySelectorAll('[data-i18n]').forEach((el) => {
+        const key = el.getAttribute('data-i18n');
+        if (!key) return;
+        el.textContent = t(key);
+    });
+    document.querySelectorAll('[data-i18n-title]').forEach((el) => {
+        const key = el.getAttribute('data-i18n-title');
+        if (!key) return;
+        el.setAttribute('title', t(key));
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (!key) return;
+        el.setAttribute('placeholder', t(key));
+    });
+}
+
+function applyLanguage(language, rerender = true) {
+    const next = I18N_STRINGS[language] ? language : 'zh-CN';
+    AppState.language = next;
+    localStorage.setItem('uiLanguage', next);
+    document.documentElement.setAttribute('lang', next);
+    if (DOM.uiLanguageSelect && DOM.uiLanguageSelect.value !== next) {
+        DOM.uiLanguageSelect.value = next;
+    }
+    applyI18nToDom();
+    if (rerender) {
+        const config = PageConfig[AppState.currentPage];
+        if (config && DOM.pageTitle) {
+            DOM.pageTitle.textContent = t(config.titleKey);
+        }
+        updateWorkflowPreview(false);
+        if (AppState.paperStageSnapshot) {
+            updatePaperStage(
+                AppState.paperStageSnapshot.stage,
+                AppState.paperStageSnapshot.message,
+                AppState.paperStageSnapshot.status
+            );
+        }
+        updatePaperTaskId(AppState.currentGeneration && AppState.currentGeneration.taskId ? AppState.currentGeneration.taskId : '');
+    }
+}
 
 // 页面配置
 const PageConfig = {
     dashboard: {
-        title: '工作台'
+        titleKey: 'page.dashboard'
     },
     'image-generation': {
-        title: '图像生成'
+        titleKey: 'page.image_generation'
     },
 
     'api-keys': {
-        title: 'API 设置'
+        titleKey: 'page.api_keys'
     },
     'edit-banana': {
-        title: 'Edit Banana'
+        titleKey: 'page.edit_banana'
     },
     settings: {
-        title: '系统设置'
+        titleKey: 'page.settings'
     },
 };
 
 const PAPER_STAGE_LABELS = {
-    queued: '排队',
-    initializing: '初始化',
-    loading_agents: '加载 Agent',
-    processing: '生成推理',
-    processing_retriever: '检索参考',
-    processing_planner: '规划内容',
-    processing_stylist: '风格优化',
-    processing_visualizer: '执行生图',
-    processing_critic: '批评迭代',
-    processing_eval: '评估整理',
-    saving: '写入结果',
-    completed: '完成',
-    failed: '失败'
+    queued: 'stage.queued',
+    initializing: 'stage.initializing',
+    loading_agents: 'stage.loading_agents',
+    processing: 'stage.processing',
+    processing_retriever: 'stage.processing_retriever',
+    processing_planner: 'stage.processing_planner',
+    processing_stylist: 'stage.processing_stylist',
+    processing_visualizer: 'stage.processing_visualizer',
+    processing_critic: 'stage.processing_critic',
+    processing_eval: 'stage.processing_eval',
+    saving: 'stage.saving',
+    completed: 'stage.completed',
+    failed: 'stage.failed'
 };
 
 const PAPER_STAGE_ORDER = [
@@ -137,6 +359,8 @@ const PAPER_STAGE_ORDER = [
     'saving',
     'completed'
 ];
+
+WorkflowGraphState.stageOrder = [...PAPER_STAGE_ORDER];
 
 const PROVIDER_MODEL_CATALOG = {
     grsai: {
@@ -226,7 +450,7 @@ function getActiveProvidersFromStore(store) {
     const providers = new Set();
     keys.forEach((item) => {
         if (item && item.isActive && item.provider) {
-            providers.add(String(item.provider).trim().toLowerCase());
+            providers.add(normalizeProviderName(item.provider));
         }
     });
     if (providers.size === 0) {
@@ -269,8 +493,15 @@ function buildGenerationModelOptions(store) {
 
     activeProviders.forEach((provider) => {
         const cfg = PROVIDER_MODEL_CATALOG[provider] || { text: [], image: [] };
-        textByProvider[provider] = uniq(cfg.text).filter((m) => ALLOWED_TEXT_MODELS.has(m));
-        imageByProvider[provider] = uniq(cfg.image).filter((m) => ALLOWED_IMAGE_MODELS.has(m));
+        const textModels = uniq(cfg.text);
+        const imageModels = uniq(cfg.image);
+        if (provider === 'grsai') {
+            textByProvider[provider] = textModels.filter((m) => ALLOWED_TEXT_MODELS.has(m));
+            imageByProvider[provider] = imageModels.filter((m) => ALLOWED_IMAGE_MODELS.has(m));
+        } else {
+            textByProvider[provider] = textModels;
+            imageByProvider[provider] = imageModels;
+        }
     });
 
     return { activeProviders, textByProvider, imageByProvider };
@@ -361,42 +592,91 @@ async function loadGenerationModelOptionsFromKeys() {
     }
 }
 
-function updatePaperStage(stage, message, status = 'running') {
+function extractCriticRoundFromMessage(message, maxRounds) {
+    const text = String(message || '');
+    if (!text || maxRounds <= 0) return null;
+    const patterns = [
+        /(\d+)\s*\/\s*(\d+)/,
+        /第\s*(\d+)\s*轮/,
+        /round\s*(\d+)/i
+    ];
+
+    for (const p of patterns) {
+        const m = text.match(p);
+        if (!m) continue;
+        const value = Number(m[1]);
+        if (Number.isFinite(value)) {
+            return Math.max(1, Math.min(maxRounds, Math.trunc(value)));
+        }
+    }
+    return null;
+}
+
+function resolveRuntimeStageKey(stage, message) {
     const hasKnownStage = stage && PAPER_STAGE_ORDER.includes(stage);
-    const safeStage = hasKnownStage ? stage : (status === 'failed' ? 'processing' : 'queued');
-    const currentIdx = PAPER_STAGE_ORDER.indexOf(safeStage);
+    const safeStage = hasKnownStage ? stage : 'queued';
+    if (safeStage !== 'processing_critic') return safeStage;
+
+    const maxRounds = Math.max(0, WorkflowGraphState.criticRounds || 0);
+    if (maxRounds <= 0) return safeStage;
+    const extracted = extractCriticRoundFromMessage(message, maxRounds);
+    if (extracted) {
+        WorkflowGraphState.activeCriticRound = extracted;
+    } else {
+        WorkflowGraphState.activeCriticRound = Math.max(1, Math.min(maxRounds, WorkflowGraphState.activeCriticRound || 1));
+    }
+    return `processing_critic_round_${WorkflowGraphState.activeCriticRound}`;
+}
+
+function resolvePaperStageMessage(message) {
+    if (typeof message !== 'string') return message;
+    if (!message.startsWith('i18n:')) return message;
+    return t(message.slice(5).trim());
+}
+
+function updatePaperStage(stage, message, status = 'running') {
+    AppState.paperStageSnapshot = { stage, message, status };
+    const runtimeStage = resolveRuntimeStageKey(stage, message);
+    const titleStage = runtimeStage.startsWith('processing_critic_round_')
+        ? runtimeStage
+        : (PAPER_STAGE_ORDER.includes(runtimeStage) ? runtimeStage : 'queued');
+    const visibleOrder = WorkflowGraphState.stageOrder.length
+        ? WorkflowGraphState.stageOrder
+        : [...PAPER_STAGE_ORDER];
+    const currentIdx = visibleOrder.indexOf(runtimeStage);
+    const items = getPaperStageItems();
 
     if (DOM.paperStageTitle) {
         DOM.paperStageTitle.textContent = status === 'idle'
-            ? '等待开始'
-            : `当前阶段：${PAPER_STAGE_LABELS[safeStage] || '处理中'}`;
+            ? t('paper.waiting')
+            : t('paper.stage_prefix', { stage: getStageLabelByKey(titleStage) || t('paper.processing_fallback') });
     }
     if (DOM.paperStageChip) {
         DOM.paperStageChip.textContent = status === 'idle'
-            ? '未开始'
-            : (status === 'failed' ? '失败' : (status === 'succeeded' ? '完成' : '进行中'));
+            ? t('paper.chip.idle')
+            : (status === 'failed' ? t('paper.chip.failed') : (status === 'succeeded' ? t('paper.chip.succeeded') : t('paper.chip.running')));
     }
     if (DOM.paperStageMessage) {
-        DOM.paperStageMessage.textContent = message || '处理中...';
+        DOM.paperStageMessage.textContent = resolvePaperStageMessage(message) || t('paper.message.processing');
     }
 
-    if (DOM.paperStageItems && DOM.paperStageItems.length) {
-        DOM.paperStageItems.forEach((item) => {
+    if (items.length) {
+        items.forEach((item) => {
             const itemStage = item.dataset.stage;
-            const itemIdx = PAPER_STAGE_ORDER.indexOf(itemStage);
+            const itemIdx = visibleOrder.indexOf(itemStage);
             item.classList.remove('is-done', 'is-current', 'is-failed');
             if (status !== 'idle') {
                 item.classList.remove('is-preview-current');
             }
 
-            if (status === 'idle') {
+            if (status === 'idle' || itemIdx === -1 || currentIdx === -1) {
                 return;
             }
 
             if (status === 'failed') {
-                if (itemStage === safeStage) {
+                if (itemIdx === currentIdx) {
                     item.classList.add('is-failed');
-                } else if (itemIdx !== -1 && currentIdx !== -1 && itemIdx < currentIdx) {
+                } else if (itemIdx < currentIdx) {
                     item.classList.add('is-done');
                 }
                 return;
@@ -407,9 +687,9 @@ function updatePaperStage(stage, message, status = 'running') {
                 return;
             }
 
-            if (itemIdx !== -1 && currentIdx !== -1 && itemIdx < currentIdx) {
+            if (itemIdx < currentIdx) {
                 item.classList.add('is-done');
-            } else if (itemStage === safeStage) {
+            } else if (itemIdx === currentIdx) {
                 item.classList.add('is-current');
             }
         });
@@ -417,17 +697,20 @@ function updatePaperStage(stage, message, status = 'running') {
     if (DOM.paperStageList && status !== 'idle') {
         DOM.paperStageList.classList.remove('is-workflow-updating');
     }
+    queueWorkflowGraphRender();
 }
 
 function updatePaperTaskId(taskId) {
     if (!DOM.paperTaskIdText) return;
     const id = (taskId || '').trim();
-    DOM.paperTaskIdText.textContent = id ? `任务ID：${id}` : '任务ID：--';
+    DOM.paperTaskIdText.textContent = id ? t('paper.task_id', { id }) : t('paper.task_id_empty');
 }
 
 function getGenerationWorkflowConfig() {
     const expMode = (localStorage.getItem('generationExpMode') || '').trim();
     const retrievalSetting = (localStorage.getItem('generationRetrieval') || '').trim();
+    const imageSizeRaw = (localStorage.getItem('generationImageSize') || '1K').toUpperCase().trim();
+    const imageSize = ['1K', '2K', '4K'].includes(imageSizeRaw) ? imageSizeRaw : '1K';
     const criticEnabled = localStorage.getItem('generationCriticEnabled') !== '0';
     const evalEnabled = localStorage.getItem('generationEvalEnabled') !== '0';
     const criticRoundsRaw = localStorage.getItem('generationCriticRounds');
@@ -436,6 +719,7 @@ function getGenerationWorkflowConfig() {
     return {
         expMode,
         retrievalSetting,
+        imageSize,
         criticEnabled,
         evalEnabled,
         criticRounds: Math.max(0, Math.min(10, Math.trunc(criticRounds)))
@@ -449,6 +733,9 @@ function syncGenerationWorkflowOptions() {
     }
     if (DOM.generationRetrievalSelect) {
         DOM.generationRetrievalSelect.value = cfg.retrievalSetting;
+    }
+    if (DOM.generationImageSizeSelect) {
+        DOM.generationImageSizeSelect.value = cfg.imageSize;
     }
     if (DOM.generationCriticEnabledCheck) {
         DOM.generationCriticEnabledCheck.checked = !!cfg.criticEnabled;
@@ -495,25 +782,25 @@ function getWorkflowPlanFromUI() {
     let expLabel = '';
     if (expMode === 'vanilla') {
         stages.push('processing_visualizer');
-        expLabel = 'Vanilla（直接生图）';
+        expLabel = t('workflow.exp.vanilla');
     } else if (expMode === 'dev_planner') {
         stages.push('processing_planner', 'processing_visualizer');
-        expLabel = 'Planner + 生图';
+        expLabel = t('workflow.exp.planner');
     } else if (expMode === 'dev_planner_stylist') {
         stages.push('processing_planner', 'processing_stylist', 'processing_visualizer');
-        expLabel = 'Planner + Stylist + 生图';
+        expLabel = t('workflow.exp.planner_stylist');
     } else if (expMode === 'dev_planner_critic' || expMode === 'demo_planner_critic') {
         stages.push('processing_planner', 'processing_visualizer');
         if (criticEnabled && criticRounds > 0) {
             stages.push('processing_critic');
         }
-        expLabel = 'Planner + Critic';
+        expLabel = t('workflow.exp.planner_critic');
     } else {
         stages.push('processing_retriever', 'processing_planner', 'processing_stylist', 'processing_visualizer');
         if (criticEnabled && criticRounds > 0) {
             stages.push('processing_critic');
         }
-        expLabel = expMode === 'demo_full' ? 'Demo Full' : 'Full';
+        expLabel = expMode === 'demo_full' ? t('workflow.exp.demo_full') : t('workflow.exp.full');
     }
     if (evalEnabled && !['demo_full', 'demo_planner_critic', 'dev_retriever'].includes(expMode)) {
         stages.push('processing_eval');
@@ -531,6 +818,381 @@ function getWorkflowPlanFromUI() {
     };
 }
 
+function prefersReducedMotion() {
+    return typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function getPaperStageItems() {
+    return Array.from(document.querySelectorAll('.paper-stage-item'));
+}
+
+function getPaperStageElement(stage) {
+    return getPaperStageItems().find((item) => item.dataset.stage === stage) || null;
+}
+
+function getCriticRoundFromStage(stage) {
+    const m = /^processing_critic_round_(\d+)$/.exec(String(stage || ''));
+    return m ? Number(m[1]) : null;
+}
+
+function getStageLabelByKey(stage) {
+    const criticRound = getCriticRoundFromStage(stage);
+    if (criticRound !== null) {
+        return t('stage.critic_round', { round: criticRound });
+    }
+    const labelKey = PAPER_STAGE_LABELS[stage];
+    return labelKey ? t(labelKey) : stage;
+}
+
+function getPaperStageLabel(item) {
+    if (!item) return '';
+    const stage = item.dataset.stage || '';
+    if (stage) return getStageLabelByKey(stage);
+    const rawText = (item.textContent || '').replace(/\s+/g, ' ').trim();
+    const label = rawText.replace(/^\d+\.\s*/, '').trim();
+    return label || rawText;
+}
+
+function buildWorkflowStageSequence(plan) {
+    const sourceStages = Array.isArray(plan && plan.stages) ? plan.stages : [];
+    const criticRounds = (plan && plan.criticEnabled)
+        ? Math.max(0, Math.min(10, Math.trunc(Number(plan.criticRounds) || 0)))
+        : 0;
+    const sequence = [];
+
+    sourceStages.forEach((stage) => {
+        if (stage === 'processing_critic') {
+            for (let i = 1; i <= criticRounds; i += 1) {
+                sequence.push(`processing_critic_round_${i}`);
+            }
+        } else {
+            sequence.push(stage);
+        }
+    });
+
+    WorkflowGraphState.criticRounds = criticRounds;
+    WorkflowGraphState.activeCriticRound = Math.max(1, Math.min(criticRounds || 1, WorkflowGraphState.activeCriticRound || 1));
+    return sequence;
+}
+
+function ensureWorkflowStageItems(stageOrder) {
+    if (!DOM.paperStageList) return;
+    const desired = new Set(stageOrder || []);
+    const existingItems = getPaperStageItems();
+    const existingMap = new Map(existingItems.map((item) => [item.dataset.stage, item]));
+
+    existingItems.forEach((item) => {
+        const stage = item.dataset.stage || '';
+        if (item.dataset.dynamic === 'critic-round' && !desired.has(stage)) {
+            item.remove();
+            existingMap.delete(stage);
+        }
+    });
+
+    (stageOrder || []).forEach((stage) => {
+        if (existingMap.has(stage)) return;
+        const item = document.createElement('div');
+        item.className = 'paper-stage-item is-hidden';
+        item.dataset.stage = stage;
+        if (stage.startsWith('processing_critic_round_')) {
+            item.dataset.dynamic = 'critic-round';
+        }
+        item.textContent = getStageLabelByKey(stage);
+        DOM.paperStageList.appendChild(item);
+    });
+}
+
+function refreshWorkflowStageNumbering(visibleOrder) {
+    const items = getPaperStageItems();
+    if (!items.length) return;
+    const orderedVisibleStages = Array.isArray(visibleOrder)
+        ? visibleOrder
+        : WorkflowGraphState.stageOrder.filter((stage) => {
+            const el = getPaperStageElement(stage);
+            return !!(el && !el.classList.contains('is-hidden'));
+        });
+
+    orderedVisibleStages.forEach((stage, idx) => {
+        const el = getPaperStageElement(stage);
+        if (!el) return;
+        const label = getPaperStageLabel(el);
+        el.textContent = `${idx + 1}. ${label}`;
+    });
+}
+
+function queueWorkflowGraphRender() {
+    if (WorkflowGraphState.renderQueued) return;
+    WorkflowGraphState.renderQueued = true;
+    requestAnimationFrame(() => {
+        WorkflowGraphState.renderQueued = false;
+        renderWorkflowGraph();
+    });
+}
+
+function computeWorkflowGrid(count, width, height) {
+    const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+    if (count <= 0) {
+        return { cols: 1, rows: 1, cellW: width, cellH: height, itemW: Math.min(240, width), itemH: 44 };
+    }
+
+    const safeWidth = Math.max(1, width);
+    const safeHeight = Math.max(1, height);
+    const minCellW = safeWidth < 520 ? 112 : 128;
+    const maxColsByWidth = Math.max(1, Math.floor(safeWidth / minCellW));
+    const maxCols = Math.max(1, Math.min(6, count, maxColsByWidth));
+    const minCols = Math.max(1, Math.min(2, maxCols));
+    let best = null;
+
+    for (let cols = minCols; cols <= maxCols; cols += 1) {
+        const rows = Math.ceil(count / cols);
+        const cellW = safeWidth / cols;
+        const cellH = safeHeight / rows;
+        const itemW = clamp(cellW - 12, 88, 240);
+        const itemH = clamp(cellH - 10, 28, 52);
+        const fillScore = (itemW * itemH * count) / Math.max(1, safeWidth * safeHeight);
+        const widthScore = Math.min(1, itemW / 132);
+        const heightScore = Math.min(1, itemH / 36);
+        const ratioScore = 1 - Math.min(1, Math.abs((itemW / Math.max(itemH, 1)) - 3) / 3);
+        const emptyPenalty = ((rows * cols) - count) / (rows * cols);
+        const balancePenalty = Math.abs(cols - rows) * 0.035;
+        const score = (widthScore * 0.32)
+            + (heightScore * 0.32)
+            + (ratioScore * 0.2)
+            + (fillScore * 0.16)
+            - (emptyPenalty * 0.08)
+            - balancePenalty;
+
+        if (!best || score > best.score) {
+            best = { cols, rows, cellW, cellH, itemW, itemH, score };
+        }
+    }
+
+    return best || { cols: count, rows: 1, cellW: width / count, cellH: height, itemW: 180, itemH: 42 };
+}
+
+function layoutWorkflowStages(visibleOrder) {
+    const layout = new Map();
+    if (!DOM.paperStageList) {
+        return { layout, width: 0, height: 0, grid: computeWorkflowGrid(0, 0, 0) };
+    }
+
+    const width = Math.max(1, DOM.paperStageList.clientWidth || DOM.paperStageList.getBoundingClientRect().width || 0);
+    const height = Math.max(1, DOM.paperStageList.clientHeight || DOM.paperStageList.getBoundingClientRect().height || 0);
+    const framePadding = 6;
+    const innerWidth = Math.max(1, width - (framePadding * 2));
+    const innerHeight = Math.max(1, height - (framePadding * 2));
+    const grid = computeWorkflowGrid(visibleOrder.length, innerWidth, innerHeight);
+    const rowBuckets = [];
+
+    visibleOrder.forEach((stage, idx) => {
+        const row = Math.floor(idx / grid.cols);
+        if (!rowBuckets[row]) {
+            rowBuckets[row] = [];
+        }
+        rowBuckets[row].push(stage);
+    });
+
+    const cellW = innerWidth / Math.max(1, grid.cols);
+    const cellH = innerHeight / Math.max(1, grid.rows);
+
+    rowBuckets.forEach((rowStages, row) => {
+        const rowCount = rowStages.length;
+        const isRtl = row % 2 === 1;
+        const rowStartX = framePadding + (isRtl ? (grid.cols - rowCount) * cellW : 0);
+
+        rowStages.forEach((stage, rowIdx) => {
+            const item = getPaperStageElement(stage);
+            if (!item) return;
+
+            const visualCol = isRtl ? (rowCount - 1 - rowIdx) : rowIdx;
+            const cellX = rowStartX + (visualCol * cellW);
+            const cellY = framePadding + (row * cellH);
+            const maxAllowedW = Math.max(76, cellW - 10);
+            const maxAllowedH = Math.max(28, cellH - 8);
+            const itemW = Math.max(76, Math.min(grid.itemW, maxAllowedW));
+            const itemH = Math.max(28, Math.min(grid.itemH, maxAllowedH));
+            const x = cellX + ((cellW - itemW) / 2);
+            const y = cellY + ((cellH - itemH) / 2);
+
+            item.style.left = `${x.toFixed(2)}px`;
+            item.style.top = `${y.toFixed(2)}px`;
+            item.style.width = `${itemW.toFixed(2)}px`;
+            item.style.height = `${itemH.toFixed(2)}px`;
+
+            layout.set(stage, {
+                index: (row * grid.cols) + rowIdx,
+                row,
+                col: visualCol,
+                x,
+                y,
+                width: itemW,
+                height: itemH
+            });
+        });
+    });
+
+    return { layout, width, height, grid };
+}
+
+function buildWorkflowArrowPath(fromMeta, toMeta) {
+    const fromCx = fromMeta.x + (fromMeta.width / 2);
+    const fromCy = fromMeta.y + (fromMeta.height / 2);
+    const toCx = toMeta.x + (toMeta.width / 2);
+    const toCy = toMeta.y + (toMeta.height / 2);
+
+    if (fromMeta.row === toMeta.row) {
+        const leftToRight = toCx >= fromCx;
+        const startX = leftToRight ? (fromMeta.x + fromMeta.width) : fromMeta.x;
+        const endX = leftToRight ? toMeta.x : (toMeta.x + toMeta.width);
+        return `M ${startX} ${fromCy} L ${endX} ${toCy}`;
+    }
+
+    const startX = fromCx;
+    const endX = toCx;
+    const startY = toCy > fromCy ? (fromMeta.y + fromMeta.height) : fromMeta.y;
+    const endY = toCy > fromCy ? toMeta.y : (toMeta.y + toMeta.height);
+
+    if (Math.abs(startX - endX) < 1.5) {
+        return `M ${startX} ${startY} L ${endX} ${endY}`;
+    }
+
+    const midY = startY + ((endY - startY) / 2);
+    return `M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`;
+}
+
+function renderWorkflowGraph() {
+    if (!DOM.paperWorkflowGraph || !DOM.paperWorkflowArrows) return;
+
+    const visibleOrder = WorkflowGraphState.stageOrder.filter((stage) => {
+        const el = getPaperStageElement(stage);
+        return !!(el && !el.classList.contains('is-hidden'));
+    });
+
+    const { layout, width, height } = layoutWorkflowStages(visibleOrder);
+    refreshWorkflowStageNumbering(visibleOrder);
+    DOM.paperWorkflowArrows.setAttribute('viewBox', `0 0 ${width} ${height}`);
+
+    if (visibleOrder.length < 2) {
+        DOM.paperWorkflowArrows.innerHTML = '';
+        return;
+    }
+
+    const markerId = 'workflowArrowHead';
+    const paths = [];
+    const focusByPreview = visibleOrder.find((stage) => {
+        const el = getPaperStageElement(stage);
+        return !!(el && el.classList.contains('is-preview-current'));
+    });
+    const isIdleSnapshot = AppState.paperStageSnapshot && AppState.paperStageSnapshot.status === 'idle';
+    const focusStage = isIdleSnapshot
+        ? ''
+        : (focusByPreview || visibleOrder.find((stage) => stage.startsWith('processing_')) || '');
+
+    for (let i = 0; i < visibleOrder.length - 1; i += 1) {
+        const fromStage = visibleOrder[i];
+        const toStage = visibleOrder[i + 1];
+        const fromMeta = layout.get(fromStage);
+        const toMeta = layout.get(toStage);
+        if (!fromMeta || !toMeta) continue;
+        const path = buildWorkflowArrowPath(fromMeta, toMeta);
+        const isFocusPath = focusStage && (fromStage === focusStage || toStage === focusStage);
+        paths.push(`<path class="workflow-edge ${isFocusPath ? 'is-focus' : ''}" d="${path}" marker-end="url(#${markerId})"></path>`);
+    }
+
+    DOM.paperWorkflowArrows.innerHTML = `
+        <defs>
+            <marker id="${markerId}" markerWidth="6" markerHeight="6" refX="5.4" refY="3" orient="auto">
+                <path d="M0,0 L6,3 L0,6 Z" fill="currentColor"></path>
+            </marker>
+        </defs>
+        ${paths.join('')}
+    `;
+}
+
+function spawnWorkflowParticles(stageItem) {
+    if (!DOM.paperWorkflowGraph || !DOM.paperWorkflowParticles || prefersReducedMotion()) return;
+    const graphRect = DOM.paperWorkflowGraph.getBoundingClientRect();
+    const itemRect = stageItem.getBoundingClientRect();
+    if (graphRect.width <= 0 || graphRect.height <= 0) return;
+
+    const centerX = itemRect.left - graphRect.left + itemRect.width / 2;
+    const centerY = itemRect.top - graphRect.top + itemRect.height / 2;
+    const count = 16;
+
+    for (let i = 0; i < count; i += 1) {
+        const p = document.createElement('span');
+        const angle = (Math.PI * 2 * i) / count + (Math.random() * 0.6 - 0.3);
+        const distance = 16 + Math.random() * 28;
+        p.className = 'paper-workflow-particle';
+        p.style.setProperty('--wf-x', `${centerX}px`);
+        p.style.setProperty('--wf-y', `${centerY}px`);
+        p.style.setProperty('--wf-dx', `${Math.cos(angle) * distance}px`);
+        p.style.setProperty('--wf-dy', `${Math.sin(angle) * distance}px`);
+        p.style.setProperty('--wf-size', `${2 + Math.random() * 4}px`);
+        DOM.paperWorkflowParticles.appendChild(p);
+        setTimeout(() => p.remove(), 700);
+    }
+}
+
+function applyWorkflowStageVisibility(stageOrder, animate = false) {
+    const items = getPaperStageItems();
+    if (!items.length) return;
+    const normalizedStages = Array.from(new Set((stageOrder || []).filter(Boolean)));
+    WorkflowGraphState.stageOrder = normalizedStages.length ? normalizedStages : [...PAPER_STAGE_ORDER];
+    const targetSet = new Set(WorkflowGraphState.stageOrder);
+    const shouldAnimate = animate && !prefersReducedMotion();
+
+    items.forEach((item) => {
+        const stage = item.dataset.stage;
+        const shouldShow = targetSet.has(stage);
+        const hideTimer = WorkflowGraphState.hideTimers.get(stage);
+        if (hideTimer) {
+            clearTimeout(hideTimer);
+            WorkflowGraphState.hideTimers.delete(stage);
+        }
+        item.classList.remove('is-exiting');
+
+        if (shouldShow) {
+            const wasHidden = item.classList.contains('is-hidden');
+            item.classList.remove('is-hidden', 'is-skipped');
+            if (shouldAnimate && wasHidden) {
+                item.classList.add('is-entering');
+                requestAnimationFrame(() => {
+                    item.classList.add('is-entering-active');
+                });
+                setTimeout(() => {
+                    item.classList.remove('is-entering', 'is-entering-active');
+                }, 260);
+            } else {
+                item.classList.remove('is-entering', 'is-entering-active');
+            }
+            return;
+        }
+
+        item.classList.remove('is-planned', 'is-preview-current', 'is-current', 'is-done', 'is-failed');
+        item.style.removeProperty('--wf-delay');
+        if (item.classList.contains('is-hidden')) return;
+
+        if (shouldAnimate) {
+            spawnWorkflowParticles(item);
+            item.classList.add('is-exiting');
+            const timer = setTimeout(() => {
+                item.classList.remove('is-exiting');
+                item.classList.add('is-hidden');
+                queueWorkflowGraphRender();
+            }, 260);
+            WorkflowGraphState.hideTimers.set(stage, timer);
+        } else {
+            item.classList.add('is-hidden');
+        }
+    });
+
+    queueWorkflowGraphRender();
+    if (shouldAnimate) {
+        setTimeout(queueWorkflowGraphRender, 280);
+    }
+}
+
 function animateWorkflowPreview() {
     if (!DOM.paperStageList) return;
     DOM.paperStageList.classList.remove('is-workflow-updating');
@@ -539,40 +1201,80 @@ function animateWorkflowPreview() {
     DOM.paperStageList.classList.add('is-workflow-updating');
     setTimeout(() => {
         if (DOM.paperStageList) DOM.paperStageList.classList.remove('is-workflow-updating');
+        queueWorkflowGraphRender();
     }, 420);
 }
 
 function updateWorkflowPreview(animate = false) {
     const plan = getWorkflowPlanFromUI();
-    const planSet = new Set(plan.stages);
-    if (DOM.paperStageItems && DOM.paperStageItems.length) {
+    const orderedStages = buildWorkflowStageSequence(plan);
+    ensureWorkflowStageItems(orderedStages);
+    applyWorkflowStageVisibility(orderedStages, animate);
+
+    const planSet = new Set(orderedStages);
+    const stageItems = getPaperStageItems();
+    if (stageItems.length) {
         let plannedIdx = 0;
-        DOM.paperStageItems.forEach((item) => {
+        stageItems.forEach((item) => {
             const stage = item.dataset.stage;
             const isPlanned = planSet.has(stage);
-            item.classList.remove('is-planned', 'is-skipped', 'is-preview-current');
+            item.classList.remove('is-preview-current');
             if (isPlanned) {
                 item.classList.add('is-planned');
                 item.style.setProperty('--wf-delay', `${plannedIdx * 24}ms`);
                 plannedIdx += 1;
             } else {
-                item.classList.add('is-skipped');
+                item.classList.remove('is-planned');
                 item.style.removeProperty('--wf-delay');
             }
         });
-        const focusStage = plan.stages.find((s) => s.startsWith('processing_')) || 'processing';
-        const focusEl = Array.from(DOM.paperStageItems).find((item) => item.dataset.stage === focusStage);
-        if (focusEl) focusEl.classList.add('is-preview-current');
+        const focusStage = orderedStages.find((s) => s.startsWith('processing_')) || 'processing';
+        const focusEl = getPaperStageElement(focusStage);
+        if (focusEl && !focusEl.classList.contains('is-hidden')) {
+            focusEl.classList.add('is-preview-current');
+        }
     }
 
     if (DOM.generationWorkflowSummary) {
-        const criticText = plan.criticEnabled && plan.criticRounds > 0 ? `审图 ${plan.criticRounds} 轮` : '审图关闭';
-        const evalText = plan.evalEnabled ? '评估开启' : '评估关闭';
-        const retrievalText = plan.retrieval ? `检索=${plan.retrieval}` : '检索默认';
-        DOM.generationWorkflowSummary.textContent = `当前流程预览：${plan.expLabel} · ${criticText} · ${evalText} · ${retrievalText}`;
+        const criticText = plan.criticEnabled && plan.criticRounds > 0
+            ? t('workflow.summary.critic_on', { rounds: plan.criticRounds })
+            : t('workflow.summary.critic_off');
+        const evalText = plan.evalEnabled ? t('workflow.summary.eval_on') : t('workflow.summary.eval_off');
+        const retrievalText = plan.retrieval
+            ? t('workflow.summary.retrieval_value', { retrieval: plan.retrieval })
+            : t('workflow.summary.retrieval_default');
+        DOM.generationWorkflowSummary.textContent = t('workflow.summary.prefix', {
+            expLabel: plan.expLabel,
+            criticText,
+            evalText,
+            retrievalText
+        });
     }
 
-    if (animate) animateWorkflowPreview();
+    if (animate) {
+        animateWorkflowPreview();
+    } else {
+        queueWorkflowGraphRender();
+    }
+}
+
+function initWorkflowGraph() {
+    if (!WorkflowGraphState.resizeBound) {
+        window.addEventListener('resize', queueWorkflowGraphRender);
+        WorkflowGraphState.resizeBound = true;
+    }
+    if (!WorkflowGraphState.resizeObserver && typeof ResizeObserver !== 'undefined') {
+        WorkflowGraphState.resizeObserver = new ResizeObserver(() => {
+            queueWorkflowGraphRender();
+        });
+        if (DOM.paperWorkflowGraph) {
+            WorkflowGraphState.resizeObserver.observe(DOM.paperWorkflowGraph);
+        }
+        if (DOM.paperStageList) {
+            WorkflowGraphState.resizeObserver.observe(DOM.paperStageList);
+        }
+    }
+    queueWorkflowGraphRender();
 }
 
 // 初始化应用
@@ -581,18 +1283,20 @@ function initApp() {
 
     // 设置主题
     setTheme(AppState.theme);
+    applyLanguage(AppState.language, false);
 
     // 绑定事件
     bindEvents();
     renderReferenceImages();
     syncGenerationWorkflowOptions();
+    initWorkflowGraph();
 
     // 加载初始数据
     loadInitialData();
 
     // 显示当前页面
     showPage(AppState.currentPage);
-    updatePaperStage('queued', '提交任务后会显示 PaperBanana 当前处理阶段。', 'idle');
+    updatePaperStage('queued', 'i18n:paper.message.idle_hint', 'idle');
     updatePaperTaskId('');
 
     console.log('应用初始化完成');
@@ -627,6 +1331,11 @@ function bindEvents() {
         DOM.themeToggle.addEventListener('click', () => {
             const newTheme = AppState.theme === 'dark' ? 'light' : 'dark';
             setTheme(newTheme);
+        });
+    }
+    if (DOM.uiLanguageSelect) {
+        DOM.uiLanguageSelect.addEventListener('change', () => {
+            applyLanguage(DOM.uiLanguageSelect.value, true);
         });
     }
 
@@ -747,6 +1456,12 @@ function bindEvents() {
             updateWorkflowPreview(true);
         });
     }
+    if (DOM.generationImageSizeSelect) {
+        DOM.generationImageSizeSelect.addEventListener('change', () => {
+            const value = String(DOM.generationImageSizeSelect.value || '1K').toUpperCase().trim();
+            localStorage.setItem('generationImageSize', ['1K', '2K', '4K'].includes(value) ? value : '1K');
+        });
+    }
     if (DOM.generationCriticEnabledCheck) {
         DOM.generationCriticEnabledCheck.addEventListener('change', () => {
             const enabled = !!DOM.generationCriticEnabledCheck.checked;
@@ -854,7 +1569,7 @@ function showPage(pageId) {
     // 更新页面标题
     const config = PageConfig[pageId];
     if (config) {
-        DOM.pageTitle.textContent = config.title;
+        DOM.pageTitle.textContent = t(config.titleKey);
     }
 
     // 切换页面内容
@@ -1240,6 +1955,9 @@ async function generateImage() {
     const provider = imageProvider || textProvider || 'grsai';
     const textModel = DOM.generationTextModelSelect ? DOM.generationTextModelSelect.value : 'gemini-2.5-pro';
     const imageModel = DOM.generationImageModelSelect ? DOM.generationImageModelSelect.value : 'nano-banana-pro';
+    const imageSize = DOM.generationImageSizeSelect
+        ? String(DOM.generationImageSizeSelect.value || '1K').toUpperCase().trim()
+        : '1K';
     const workflowExpMode = DOM.generationExpModeSelect ? (DOM.generationExpModeSelect.value || '').trim() : '';
     const workflowRetrieval = DOM.generationRetrievalSelect ? (DOM.generationRetrievalSelect.value || '').trim() : '';
     const workflowCriticEnabled = DOM.generationCriticEnabledCheck ? !!DOM.generationCriticEnabledCheck.checked : true;
@@ -1252,7 +1970,7 @@ async function generateImage() {
     // 更新进度条
     if (DOM.progressBar) DOM.progressBar.style.width = '10%';
     if (DOM.progressText) DOM.progressText.textContent = '10%';
-    updatePaperStage('queued', '任务已提交，等待 PaperBanana 启动...', 'running');
+    updatePaperStage('queued', 'i18n:paper.message.task_submitted_waiting', 'running');
 
     try {
         // 使用API服务生成图像
@@ -1269,7 +1987,7 @@ async function generateImage() {
             evalEnabled: workflowEvalEnabled,
             maxCriticRounds: workflowCriticEnabled ? workflowCriticRounds : 0,
             aspectRatio: 'auto',
-            imageSize: '1K',
+            imageSize: ['1K', '2K', '4K'].includes(imageSize) ? imageSize : '1K',
             urls: AppState.referenceImages.map((item) => item.dataUrl),
             cancellation: generationController,
             onProgress: (progress, message, payload) => {
@@ -1321,7 +2039,7 @@ async function generateImage() {
             DOM.generateBtn.innerHTML = '<i class="fas fa-magic"></i> 生成图像';
             if (DOM.progressBar) DOM.progressBar.style.width = '95%';
             if (DOM.progressText) DOM.progressText.textContent = '95%';
-            updatePaperStage('processing', '轮询超时，任务仍在后台执行，请稍后查询结果', 'running');
+            updatePaperStage('processing', 'i18n:paper.message.poll_timeout', 'running');
             updatePaperTaskId(finalTaskId);
             showNotification(`任务仍在执行中，可稍后查询。任务ID：${finalTaskId || '未知'}`, 'warning');
             return;
@@ -1340,7 +2058,7 @@ async function generateImage() {
         if (DOM.progressBar) DOM.progressBar.style.width = '0%';
         if (DOM.progressText) DOM.progressText.textContent = '0%';
         if (error && error.isCanceled) {
-            updatePaperStage('failed', '任务已取消', 'failed');
+            updatePaperStage('failed', 'i18n:paper.message.task_canceled', 'failed');
         } else {
             updatePaperStage('failed', error.message || '任务执行失败', 'failed');
         }
@@ -1362,7 +2080,7 @@ function handleImageGenerationComplete(resultData) {
     if (DOM.progressText) {
         DOM.progressText.textContent = '100%';
     }
-    updatePaperStage(resultData.stage || 'completed', resultData.stageMessage || '图像生成完成', 'succeeded');
+    updatePaperStage(resultData.stage || 'completed', resultData.stageMessage || 'i18n:paper.message.generation_done', 'succeeded');
     updatePaperTaskId(resultData && resultData.id ? resultData.id : '');
 
     // 启用下载按钮
@@ -1382,7 +2100,7 @@ function handleImageGenerationComplete(resultData) {
     }
 
     // 更新预览
-    const previewContainer = document.querySelector('.preview-container');
+    const previewContainer = DOM.generationPreviewContainer || document.querySelector('.preview-container');
     if (previewContainer && resultData.results && resultData.results.length > 0) {
         const result = resultData.results[0];
 
@@ -1470,6 +2188,10 @@ async function resetImageForm() {
         DOM.generationRetrievalSelect.value = '';
         localStorage.setItem('generationRetrieval', '');
     }
+    if (DOM.generationImageSizeSelect) {
+        DOM.generationImageSizeSelect.value = '1K';
+        localStorage.setItem('generationImageSize', '1K');
+    }
     if (DOM.generationCriticEnabledCheck) {
         DOM.generationCriticEnabledCheck.checked = true;
         localStorage.setItem('generationCriticEnabled', '1');
@@ -1492,7 +2214,7 @@ async function resetImageForm() {
     if (DOM.progressBar) DOM.progressBar.style.width = '0%';
     if (DOM.progressText) DOM.progressText.textContent = '0%';
     if (DOM.downloadBtn) DOM.downloadBtn.disabled = true;
-    updatePaperStage('queued', '提交任务后会显示 PaperBanana 当前处理阶段。', 'idle');
+    updatePaperStage('queued', 'i18n:paper.message.idle_hint', 'idle');
     updatePaperTaskId('');
     AppState.isLoading = false;
     AppState.currentGeneration = null;
@@ -1501,7 +2223,7 @@ async function resetImageForm() {
         DOM.generateBtn.innerHTML = '<i class="fas fa-magic"></i> 生成图像';
     }
 
-    const previewContainer = document.querySelector('.preview-container');
+    const previewContainer = DOM.generationPreviewContainer || document.querySelector('.preview-container');
     if (previewContainer) {
         previewContainer.innerHTML = `
             <div class="preview-placeholder">
@@ -2017,6 +2739,9 @@ function loadSettings() {
 
     if (chatModelSelect && window.APIService) {
         chatModelSelect.value = window.APIService.activeChatModel;
+    }
+    if (DOM.uiLanguageSelect) {
+        DOM.uiLanguageSelect.value = AppState.language;
     }
 }
 

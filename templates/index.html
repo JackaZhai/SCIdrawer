@@ -39,23 +39,23 @@
             <nav class="sidebar-nav">
                 <a href="#" class="nav-item active" data-page="dashboard">
                     <i class="fas fa-home nav-icon"></i>
-                    <span class="nav-label">工作台</span>
+                    <span class="nav-label" data-i18n="nav.dashboard">工作台</span>
                 </a>
                 <a href="#" class="nav-item" data-page="image-generation">
                     <i class="fas fa-palette nav-icon"></i>
-                    <span class="nav-label">图像生成</span>
+                    <span class="nav-label" data-i18n="nav.image_generation">图像生成</span>
                 </a>
                 <a href="#" class="nav-item" data-page="api-keys">
                     <i class="fas fa-key nav-icon"></i>
-                    <span class="nav-label">API 设置</span>
+                    <span class="nav-label" data-i18n="nav.api_keys">API 设置</span>
                 </a>
 <a href="#" class="nav-item" data-page="edit-banana">
                     <i class="fas fa-diagram-project nav-icon"></i>
-                    <span class="nav-label">Edit Banana</span>
+                    <span class="nav-label" data-i18n="nav.edit_banana">Edit Banana</span>
                 </a>
                 <a href="#" class="nav-item" data-page="settings">
                     <i class="fas fa-cog nav-icon"></i>
-                    <span class="nav-label">设置</span>
+                    <span class="nav-label" data-i18n="nav.settings">设置</span>
                 </a>
             </nav>
 
@@ -73,18 +73,18 @@
 
                 <div class="topbar-right">
                     <div class="topbar-actions">
-                        <button class="action-button" id="themeToggle" title="切换主题">
+                        <button class="action-button" id="themeToggle" title="切换主题" data-i18n-title="action.toggle_theme">
                             <i class="fas fa-moon"></i>
                         </button>
 
                         <div class="window-controls" id="windowControls" aria-label="Window controls">
-                            <button class="win-btn" id="winMinBtn" title="最小化" type="button">
+                            <button class="win-btn" id="winMinBtn" title="最小化" data-i18n-title="window.minimize" type="button">
                                 <i class="fas fa-minus"></i>
                             </button>
-                            <button class="win-btn" id="winMaxBtn" title="最大化/还原" type="button">
+                            <button class="win-btn" id="winMaxBtn" title="最大化/还原" data-i18n-title="window.maximize" type="button">
                                 <i class="fas fa-square"></i>
                             </button>
-                            <button class="win-btn win-close" id="winCloseBtn" title="关闭" type="button">
+                            <button class="win-btn win-close" id="winCloseBtn" title="关闭" data-i18n-title="window.close" type="button">
                                 <i class="fas fa-times"></i>
                             </button>
                         </div>
@@ -95,46 +95,8 @@
             <!-- 页面内容 -->
             <div class="page-content">
                 <!-- 仪表盘页面 -->
-                <!-- <div class="page-section active" id="page-dashboard">
+                <div class="page-section active" id="page-dashboard">
                     <div class="dashboard">
-                        <div class="welcome-banner">
-                            <div class="welcome-content">
-                                <h2 class="welcome-title">SCIdrawer 科研绘图工作台</h2>
-                                <p class="welcome-subtitle">
-                                    面向 SCI 论文场景的 AI 绘图平台。建议流程：先用模板起草提示词，再选模型生成，最后基于活动记录迭代优化。
-                                </p>
-                                <div class="quick-actions">
-                                    <a href="#" class="quick-action" data-target="image-generation">
-                                        <div class="quick-action-icon"><i class="fas fa-rocket"></i></div>
-                                        <h4 class="quick-action-title">开始生成</h4>
-                                        <p class="quick-action-description">进入图像生成页，直接使用提示词生成论文插图。</p>
-                                    </a>
-                                    <a href="#" class="quick-action" data-target="api-keys">
-                                        <div class="quick-action-icon"><i class="fas fa-key"></i></div>
-                                        <h4 class="quick-action-title">配置 API</h4>
-                                        <p class="quick-action-description">先配置密钥和节点，确保模型可用后再批量出图。</p>
-                                    </a>
-                                </div>
-                            </div>
-                        </div> -->
-
-                        <div class="stats-grid">
-                            <div class="stat-card">
-                                <div class="stat-icon">
-                                    <i class="fas fa-coins"></i>
-                                </div>
-                                <div class="stat-value" id="creditsBalance">--</div>
-                                <div class="stat-label">账户余额</div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-icon">
-                                    <i class="fas fa-key"></i>
-                                </div>
-                                <div class="stat-value" id="apiKeyStatus">检查中...</div>
-                                <div class="stat-label">API Key</div>
-                            </div>
-                        </div>
-
                         <div class="dashboard-panels">
                             <div class="content-card">
                                 <div class="content-card-header">
@@ -280,6 +242,15 @@
                                     </div>
                                     <div class="parameter-grid-2" style="margin-top: 0.5rem;">
                                         <div class="form-group">
+                                            <label class="form-label">图像质量</label>
+                                            <select id="generationImageSizeSelect" class="form-select">
+                                                <option value="1K">1K</option>
+                                                <option value="2K">2K</option>
+                                                <option value="4K">4K</option>
+                                            </select>
+                                            <div class="form-hint">更高质量会增加生成耗时与资源消耗。</div>
+                                        </div>
+                                        <div class="form-group">
                                             <label class="form-label">审图轮数（critic）</label>
                                             <input id="generationCriticRoundsInput" class="form-input" type="number" min="0" max="10" step="1" value="3" />
                                             <div class="form-hint">0 表示关闭审图；仅在包含 critic 的流程里生效。</div>
@@ -330,7 +301,7 @@
 
                             <!-- 预览面板 -->
                             <div class="preview-panel">
-                                <div class="preview-container">
+                                <div class="preview-container" id="generationPreviewContainer">
                                     <div class="preview-placeholder">
                                         <div class="preview-placeholder-icon">
                                             <i class="fas fa-image"></i>
@@ -348,19 +319,23 @@
                                         </div>
                                         <div class="paper-status-message" id="paperStageMessage">提交任务后会显示 PaperBanana 当前处理阶段。</div>
                                         <div class="paper-status-message" id="paperTaskIdText">任务ID：--</div>
-                                        <div class="paper-stage-list" id="paperStageList">
-                                            <div class="paper-stage-item" data-stage="queued">1. 排队</div>
-                                            <div class="paper-stage-item" data-stage="initializing">2. 初始化</div>
-                                            <div class="paper-stage-item" data-stage="loading_agents">3. 加载 Agent</div>
-                                            <div class="paper-stage-item" data-stage="processing">4. 生成推理</div>
-                                            <div class="paper-stage-item" data-stage="processing_retriever">5. 检索参考</div>
-                                            <div class="paper-stage-item" data-stage="processing_planner">6. 规划内容</div>
-                                            <div class="paper-stage-item" data-stage="processing_stylist">7. 风格优化</div>
-                                            <div class="paper-stage-item" data-stage="processing_visualizer">8. 执行生图</div>
-                                            <div class="paper-stage-item" data-stage="processing_critic">9. 批评迭代</div>
-                                            <div class="paper-stage-item" data-stage="processing_eval">10. 评估整理</div>
-                                            <div class="paper-stage-item" data-stage="saving">11. 写入结果</div>
-                                            <div class="paper-stage-item" data-stage="completed">12. 完成</div>
+                                        <div class="paper-workflow-graph" id="paperWorkflowGraph">
+                                            <svg class="paper-workflow-arrows" id="paperWorkflowArrows" aria-hidden="true"></svg>
+                                            <div class="paper-workflow-particles" id="paperWorkflowParticles" aria-hidden="true"></div>
+                                            <div class="paper-stage-list" id="paperStageList">
+                                                <div class="paper-stage-item" data-stage="queued">1. 排队</div>
+                                                <div class="paper-stage-item" data-stage="initializing">2. 初始化</div>
+                                                <div class="paper-stage-item" data-stage="loading_agents">3. 加载 Agent</div>
+                                                <div class="paper-stage-item" data-stage="processing">4. 生成推理</div>
+                                                <div class="paper-stage-item" data-stage="processing_retriever">5. 检索参考</div>
+                                                <div class="paper-stage-item" data-stage="processing_planner">6. 规划内容</div>
+                                                <div class="paper-stage-item" data-stage="processing_stylist">7. 风格优化</div>
+                                                <div class="paper-stage-item" data-stage="processing_visualizer">8. 执行生图</div>
+                                                <div class="paper-stage-item" data-stage="processing_critic">9. 批评迭代</div>
+                                                <div class="paper-stage-item" data-stage="processing_eval">10. 评估整理</div>
+                                                <div class="paper-stage-item" data-stage="saving">11. 写入结果</div>
+                                                <div class="paper-stage-item" data-stage="completed">12. 完成</div>
+                                            </div>
                                         </div>
                                         <div class="paper-progress-row">
                                             <div class="progress">
@@ -610,47 +585,48 @@
                 <div class="page-section" id="page-settings">
                     <div class="settings">
                         <div class="content-card-header">
-                            <h3 class="content-card-title">设置项</h3>
+                            <h3 class="content-card-title" data-i18n="settings.title">设置项</h3>
                         </div>
 
                         <div class="settings-group">
-                            <h3 class="settings-group-title">常规设置</h3>
+                            <h3 class="settings-group-title" data-i18n="settings.general">常规设置</h3>
                             <div class="settings-item">
                                 <div class="settings-label">
-                                    <div class="settings-name">界面语言</div>
-                                    <div class="settings-description">选择应用程序显示语言</div>
+                                    <div class="settings-name" data-i18n="settings.language.name">界面语言</div>
+                                    <div class="settings-description" data-i18n="settings.language.description">选择应用程序显示语言</div>
                                 </div>
-                                <select class="form-select" style="width: 12rem;">
-                                    <option value="zh-CN" selected>简体中文</option>
-                                    <option value="en-US">English</option>
+                                <select class="form-select" id="uiLanguageSelect" style="width: 12rem;">
+                                    <option value="zh-CN" data-i18n="settings.language.option_zh" selected>简体中文</option>
+                                    <option value="en-US" data-i18n="settings.language.option_en">English</option>
                                 </select>
                             </div>
                             <div class="settings-item">
                                 <div class="settings-label">
-                                    <div class="settings-name">主题模式</div>
-                                    <div class="settings-description">选择应用程序颜色主题</div>
+                                    <div class="settings-name" data-i18n="settings.theme.name">主题模式</div>
+                                    <div class="settings-description" data-i18n="settings.theme.description">选择应用程序颜色主题</div>
                                 </div>
                                 <div class="theme-selector">
                                     <button class="btn btn-outline btn-sm" data-theme="dark">
                                         <i class="fas fa-moon"></i>
-                                        深色
+                                        <span data-i18n="settings.theme.dark">深色</span>
                                     </button>
                                     <button class="btn btn-outline btn-sm" data-theme="light">
                                         <i class="fas fa-sun"></i>
-                                        浅色
+                                        <span data-i18n="settings.theme.light">浅色</span>
                                     </button>
                                 </div>
                             </div>
                         </div>
                         <div class="settings-group">
-                            <h3 class="settings-group-title">说明</h3>
+                            <h3 class="settings-group-title" data-i18n="settings.note">说明</h3>
                             <div class="settings-item">
                                 <div class="settings-label">
-                                    <div class="settings-name">API 与模型配置</div>
-                                    <div class="settings-description">已迁移到“API 设置”页面统一管理。</div>
+                                    <div class="settings-name" data-i18n="settings.api_model.name">API 与模型配置</div>
+                                    <div class="settings-description" data-i18n="settings.api_model.description">已迁移到“API 设置”页面统一管理。</div>
                                 </div>
                             </div>
                         </div>
+                    </div>
                 </div>
             </div>
         </main>
@@ -705,13 +681,6 @@
     <script src="{{ url_for('static', filename='js/desktop.js') }}"></script>
 </body>
 </html>
-
-
-
-
-
-
-
 
 
 
