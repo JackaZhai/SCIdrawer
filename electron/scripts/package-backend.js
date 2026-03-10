@@ -46,7 +46,8 @@ function main() {
     'tqdm',
     'json_repair',
     'python-dotenv',
-    'pyyaml'
+    'pyyaml',
+    'matplotlib'
   ];
 
   if (!fs.existsSync(appEntrypoint)) {
@@ -118,7 +119,13 @@ function main() {
     '--hidden-import',
     'tqdm',
     '--hidden-import',
+    'tqdm.asyncio',
+    '--hidden-import',
     'json_repair',
+    '--hidden-import',
+    'matplotlib',
+    '--hidden-import',
+    'matplotlib.pyplot',
     '--collect-all',
     'openai',
     '--collect-all',
@@ -127,6 +134,10 @@ function main() {
     'google.genai',
     '--collect-all',
     'google.auth',
+    '--collect-all',
+    'tqdm',
+    '--collect-all',
+    'matplotlib',
     '--collect-all',
     'charset_normalizer',
     '--add-data',

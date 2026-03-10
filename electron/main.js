@@ -106,6 +106,8 @@ function buildRuntime(port) {
       PORT: String(port),
       DATA_DIR: dataDir,
       DB_PATH: dbPath,
+      PYTHONIOENCODING: 'utf-8',
+      PYTHONUTF8: '1',
       PAPERBANANA_ROOT: path.join(integrationsRoot, 'PaperBanana'),
       EDIT_BANANA_ROOT: path.join(integrationsRoot, 'Edit-Banana')
     }

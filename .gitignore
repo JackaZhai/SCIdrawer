@@ -39,6 +39,10 @@ backup/
 *.sqlite
 *.sqlite3
 !data/.gitkeep
+data/paperbanana/jobs/
+data/edit_banana/jobs/
+**/paperbanana/jobs/
+**/edit_banana/jobs/
 
 # Logs
 *.log
@@ -48,6 +52,7 @@ logs/**
 # Temporary files
 *.tmp
 *.temp
+tmp/
 
 # Test files
 test-output/

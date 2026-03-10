@@ -59,7 +59,7 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "useZip": true,
+      "useZip": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true
     }

@@ -28,6 +28,8 @@ const WorkflowGraphState = {
     activeCriticRound: 1
 };
 
+const ACTIVITY_MAX_ITEMS = 3;
+
 // DOM 元素缓存
 const DOM = {
     // 侧边栏
@@ -1863,7 +1865,13 @@ function refreshActivities() {
 
     // 从localStorage加载活动记录
     setTimeout(() => {
-        const activities = JSON.parse(localStorage.getItem('activities') || '[]');
+        const storedActivities = JSON.parse(localStorage.getItem('activities') || '[]');
+        const activities = Array.isArray(storedActivities)
+            ? storedActivities.slice(0, ACTIVITY_MAX_ITEMS)
+            : [];
+        if (Array.isArray(storedActivities) && storedActivities.length > ACTIVITY_MAX_ITEMS) {
+            localStorage.setItem('activities', JSON.stringify(activities));
+        }
 
         if (activities.length === 0) {
             DOM.activitiesList.innerHTML = `
@@ -1900,7 +1908,8 @@ function refreshActivities() {
 // 添加活动记录
 function addActivity(activity) {
     // 获取现有活动记录
-    const activities = JSON.parse(localStorage.getItem('activities') || '[]');
+    const storedActivities = JSON.parse(localStorage.getItem('activities') || '[]');
+    const activities = Array.isArray(storedActivities) ? storedActivities : [];
 
     // 添加时间戳
     activity.timestamp = new Date().toISOString();
@@ -1908,9 +1917,9 @@ function addActivity(activity) {
     // 添加到列表开头
     activities.unshift(activity);
 
-    // 限制最多保存20条记录
-    if (activities.length > 20) {
-        activities.pop();
+    // 限制最多保存3条记录
+    if (activities.length > ACTIVITY_MAX_ITEMS) {
+        activities.splice(ACTIVITY_MAX_ITEMS);
     }
 
     // 保存到localStorage

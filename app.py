@@ -3,12 +3,41 @@ SCIdrawer - AI Service Middleware
 面向对象重构版本
 """
 
+import io
 import os
+import sys
 
 from flask import Flask
 
 from src.config import get_config
 from src.routes.api_routes import api_bp, main_bp
+
+
+def _force_utf8_stdio() -> None:
+    """Force UTF-8 stdio to avoid Windows GBK encoding errors in logs."""
+    for stream_name in ("stdout", "stderr"):
+        stream = getattr(sys, stream_name, None)
+        if stream is None:
+            continue
+        try:
+            stream.reconfigure(encoding="utf-8", errors="backslashreplace")  # type: ignore[attr-defined]
+            continue
+        except Exception:
+            pass
+
+        buffer = getattr(stream, "buffer", None)
+        if buffer is None:
+            continue
+        wrapped = io.TextIOWrapper(
+            buffer,
+            encoding="utf-8",
+            errors="backslashreplace",
+            line_buffering=True,
+        )
+        setattr(sys, stream_name, wrapped)
+
+
+_force_utf8_stdio()
 
 
 def create_app() -> Flask:
