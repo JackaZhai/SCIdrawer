@@ -39,6 +39,10 @@ class Config:
         self.max_reference_image_bytes = int(
             os.getenv("MAX_REFERENCE_IMAGE_BYTES", str(5 * 1024 * 1024))
         )
+        self.app_version = os.getenv("APP_VERSION", "").strip()
+        self.update_metadata_url = os.getenv("UPDATE_METADATA_URL", "").strip()
+        self.github_repo = os.getenv("GITHUB_REPO", "").strip()
+        self.update_check_timeout = int(os.getenv("UPDATE_CHECK_TIMEOUT", "5"))
 
     def _get_config_value(self, config_attr: str, env_var: str, default: str) -> str:
         env_value = os.getenv(env_var)

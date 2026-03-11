@@ -112,7 +112,10 @@ class VanillaAgent(BaseAgent):
         
         prompt_text = f"**{cfg['content_label']}**: {content}\n**{cfg['visual_intent_label']}**: {visual_intent}\n"
         if cfg['task_name'] == 'diagram':
-            prompt_text += "Note that do not include figure titles in the image."
+            prompt_text += (
+                "Note that do not include figure titles in the image, and do not render any technical metadata "
+                "strings (such as 1K, 2K, 4K, 1024x1024, 1536x1024, 16:9, 1cm, 2px, 12pt, 5mm, 300dpi) as visible text."
+            )
         
         if cfg["use_image_generation"]:
             prompt_text += "**Generated Diagram**: "
@@ -196,6 +199,12 @@ You will be provided with a "Method Section" and a "Diagram Caption". Your task 
 
 **CRITICAL INSTRUCTION ON CAPTION:**
 The "Diagram Caption" is provided solely to describe the visual content and logic you need to draw. **DO NOT render, write, or include the caption text itself (e.g., "Figure 1: ...") inside the generated image.**
+
+**CRITICAL INSTRUCTION ON TECHNICAL METADATA:**
+Do NOT render technical metadata as visible text in the image, including resolution/aspect-ratio/pixel-size strings
+(for example: 1K, 2K, 4K, 1024x1024, 1536x1024, 16:9), measurement-unit labels
+(for example: 1cm, 2px, 12pt, 5mm, 300dpi), model/version text, or watermark-like technical labels,
+unless the user explicitly asks for them.
 
 ## INPUT DATA
 -   **Method Section**: [Content of method section]

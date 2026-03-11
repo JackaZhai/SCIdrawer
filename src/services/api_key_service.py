@@ -26,6 +26,35 @@ class ApiKeyService:
         self.config = get_config()
         self.encryption = get_encryption_service()
 
+    @staticmethod
+    def _sanitize_api_key_value(value: str) -> str:
+        """Normalize copied API keys before storage/use.
+
+        Users commonly paste values with wrapping quotes/backticks or a leading
+        "Bearer " prefix. HTTP headers must stay ASCII-only, so reject any
+        non-ASCII content early with a readable validation error.
+        """
+        cleaned = (value or "").strip()
+        if not cleaned:
+            return ""
+
+        if (
+            len(cleaned) >= 2
+            and cleaned[0] == cleaned[-1]
+            and cleaned[0] in {'"', "'", "`"}
+        ):
+            cleaned = cleaned[1:-1].strip()
+
+        if cleaned.lower().startswith("bearer "):
+            cleaned = cleaned[7:].strip()
+
+        if any(ord(ch) > 127 for ch in cleaned):
+            raise ValidationError(
+                "API key 包含非 ASCII 字符。请仅填写密钥本身，不要包含中文备注、全角符号或 `Bearer ` 前缀。"
+            )
+
+        return cleaned
+
     def bootstrap_api_keys(self, user_id: Optional[int]) -> None:
         """Normalize stored keys only; do not import env/config keys."""
         if not user_id:
@@ -159,7 +188,7 @@ class ApiKeyService:
         self, user_id: int, provider: str, value: str, name: str = "", base_url: str = ""
     ) -> Dict:
         provider = self.normalize_provider(provider)
-        value = (value or "").strip()
+        value = self._sanitize_api_key_value(value)
         if not value:
             raise ValidationError("Api key 不能为空")
 
@@ -212,7 +241,7 @@ class ApiKeyService:
 
     def build_headers(self, user_id: Optional[int], provider: str = "grsai") -> Dict[str, str]:
         provider = self.normalize_provider(provider)
-        api_key = self.get_active_api_key_value(user_id, provider)
+        api_key = self._sanitize_api_key_value(self.get_active_api_key_value(user_id, provider))
         if not api_key:
             raise ValidationError("Missing API key. 请在“API 密钥”中添加对应提供商的 Key。")
 

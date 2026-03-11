@@ -13,6 +13,7 @@ from ..services.auth import get_auth_service
 from ..services.edit_banana_service import get_edit_banana_service
 from ..services.paper_banana_service import get_paper_banana_service
 from ..services.provider_config_service import get_provider_config_service
+from ..services.update_service import get_update_service
 from .decorators import api_login_required, handle_api_errors, login_required
 
 # 创建API蓝图
@@ -141,6 +142,15 @@ def model_status() -> Any:
     model = (request.args.get("model") or "").strip()
     result = ai_service.get_model_status(user_id, model)
     return jsonify(result)
+
+
+@api_bp.get("/update/check")
+@api_login_required
+@handle_api_errors
+def check_update() -> Any:
+    """Check remote update information."""
+    update_service = get_update_service()
+    return jsonify(update_service.check_update())
 
 
 @api_bp.get("/provider-configs")
@@ -308,6 +318,7 @@ def index() -> Any:
     config = get_config()
     auth_service = get_auth_service()
     api_key_service = get_api_key_service()
+    update_service = get_update_service()
 
     user_id = auth_service.get_current_user_id()
     api_key_service.bootstrap_api_keys(user_id)
@@ -317,7 +328,17 @@ def index() -> Any:
     else:
         has_api_key = False
 
-    return render_template("index.html", api_host=config.api_host, has_api_key=has_api_key)
+    github_repo_url = ""
+    if config.github_repo:
+        github_repo_url = f"https://github.com/{config.github_repo}"
+
+    return render_template(
+        "index.html",
+        api_host=config.api_host,
+        has_api_key=has_api_key,
+        app_version=update_service.get_current_version(),
+        github_repo_url=github_repo_url,
+    )
 
 
 @main_bp.get("/manual")

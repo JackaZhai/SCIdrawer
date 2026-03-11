@@ -158,31 +158,6 @@
     updateName();
   }
 
-  function applyCustomApiHostUI() {
-    const apiHostSelect = $('apiHostSelect');
-    const apiHostCustomInput = $('apiHostCustomInput');
-    if (!apiHostSelect) return;
-
-    const savedHost = localStorage.getItem('apiHost') || 'https://grsaiapi.com';
-    const optionValues = Array.from(apiHostSelect.options || []).map(o => o.value);
-
-    if (optionValues.includes(savedHost)) {
-      apiHostSelect.value = savedHost;
-      if (apiHostCustomInput) apiHostCustomInput.value = '';
-    } else {
-      apiHostSelect.value = 'custom';
-      if (apiHostCustomInput) apiHostCustomInput.value = savedHost;
-    }
-
-    const effectiveHost = apiHostSelect.value === 'custom'
-      ? ((apiHostCustomInput && apiHostCustomInput.value) || savedHost)
-      : savedHost;
-
-    if (window.APIService && window.APIService.setApiHost) {
-      window.APIService.setApiHost(effectiveHost);
-    }
-  }
-
   function applyChatProviderUI() {
     const sel = $('chatProviderSelect');
     const keyInput = $('chatApiKeyInput');
@@ -208,23 +183,6 @@
 
     const convertBtn = $('editBananaConvertBtn');
     if (convertBtn) convertBtn.addEventListener('click', (e) => { e.preventDefault(); convertWithEditBanana(); });
-
-    const apiHostSelect = $('apiHostSelect');
-    const apiHostCustomInput = $('apiHostCustomInput');
-    if (apiHostSelect) apiHostSelect.addEventListener('change', () => {
-      if (apiHostSelect.value !== 'custom') {
-        localStorage.setItem('apiHost', apiHostSelect.value);
-      } else {
-        const v = (apiHostCustomInput && apiHostCustomInput.value || '').trim();
-        if (v) localStorage.setItem('apiHost', v);
-      }
-      applyCustomApiHostUI();
-    });
-    if (apiHostCustomInput) apiHostCustomInput.addEventListener('blur', () => {
-      const v = (apiHostCustomInput.value || '').trim();
-      if (v) localStorage.setItem('apiHost', v);
-      applyCustomApiHostUI();
-    });
 
     const chatProviderSelect = $('chatProviderSelect');
     if (chatProviderSelect) chatProviderSelect.addEventListener('change', () => {
@@ -255,7 +213,6 @@
   }
 
   document.addEventListener('DOMContentLoaded', () => {
-    applyCustomApiHostUI();
     applyChatProviderUI();
     bindIntegrationEvents();
     bindEditBananaFileLabel();

@@ -944,7 +944,19 @@
 }
 
 .section-head i {
+  width: 1.2rem;
+  height: 1.2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.4rem;
   color: var(--color-primary);
+  background: rgba(185, 113, 63, 0.14);
+}
+
+[data-theme="light"] .section-head i {
+  color: #5a3f2f;
+  background: rgba(125, 84, 52, 0.14);
 }
 
 .parameter-grid-2 {
@@ -1068,6 +1080,27 @@
   position: relative;
   height: 100%;
   min-height: 0;
+}
+
+.preview-scene {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: translateY(8px) scale(0.986);
+  transition: opacity 300ms ease, transform 320ms ease;
+}
+
+.preview-scene.is-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.preview-scene.is-leaving {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.986);
 }
 
 .image-generation .preview-container {
@@ -1296,17 +1329,33 @@
   stroke-linejoin: round;
   opacity: 0.96;
   vector-effect: non-scaling-stroke;
+  stroke-dasharray: 8 10;
+  stroke-dashoffset: 0;
+}
+
+.paper-workflow-arrows path.workflow-edge.is-animated {
+  animation: workflow-edge-flow 1.65s linear infinite;
 }
 
 .paper-workflow-arrows path.workflow-edge.is-focus {
   stroke-width: 1.3;
   opacity: 1;
+  stroke-dasharray: 7 8;
+}
+
+.paper-workflow-arrows path.workflow-edge.is-focus.is-animated {
+  animation-duration: 1.05s;
 }
 
 .paper-workflow-arrows marker path {
   fill: currentColor;
   stroke: none;
   opacity: 1;
+}
+
+.paper-workflow-arrows marker path.workflow-arrowhead.is-animated {
+  animation: workflow-arrowhead-pulse 1.05s ease-in-out infinite;
+  transform-origin: center;
 }
 
 .paper-workflow-particles {
@@ -1365,12 +1414,26 @@
   }
 }
 
+@keyframes workflow-edge-flow {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -36; }
+}
+
+@keyframes workflow-arrowhead-pulse {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 0.45; }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .preview-scene,
   .paper-stage-item.is-preview-current,
   .paper-stage-list.is-workflow-updating .paper-stage-item.is-planned,
   .paper-stage-item.is-exiting,
-  .paper-workflow-particle {
+  .paper-workflow-particle,
+  .paper-workflow-arrows path.workflow-edge.is-animated,
+  .paper-workflow-arrows marker path.workflow-arrowhead.is-animated {
     animation: none;
+    transition: none;
   }
 }
 
@@ -1764,6 +1827,18 @@
   background: var(--color-bg-surface-hover);
 }
 
+[data-theme="light"] .keys-table .badge-secondary {
+  color: #5a3f2f;
+  background: rgba(125, 84, 52, 0.14);
+  border: 1px solid rgba(125, 84, 52, 0.3);
+}
+
+[data-theme="light"] .keys-table .badge-primary {
+  color: #4f2f1c;
+  background: rgba(185, 113, 63, 0.2);
+  border: 1px solid rgba(125, 84, 52, 0.32);
+}
+
 .key-masked {
   font-family: var(--font-family-mono);
   font-size: var(--font-size-xs);
@@ -1846,6 +1921,19 @@
 .settings-description {
   font-size: var(--font-size-xs);
   color: var(--color-text-tertiary);
+}
+
+.settings-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+}
+
+.settings-link:hover {
+  color: var(--color-text-primary);
+  text-decoration: underline;
 }
 
 /* ===== 鐧诲綍椤甸潰 ===== */

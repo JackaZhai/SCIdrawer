@@ -1,5 +1,5 @@
 ﻿<!DOCTYPE html>
-<html lang="zh-CN" data-theme="dark">
+<html lang="zh-CN" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -176,7 +176,6 @@
                             <div class="parameters-panel">
                                 <div class="panel-title-row">
                                     <h3 class="content-card-title">生成参数</h3>
-                                    <span class="panel-title-tip">先写提示词，再选模型</span>
                                 </div>
 
                                 <div class="parameter-section">
@@ -440,26 +439,6 @@
                             </div>
                         </div>
 
-                        <div class="content-card" style="margin-top: 1.25rem;">
-                            <div class="content-card-header">
-                                <h3 class="content-card-title">API 路由</h3>
-                            </div>
-                            <div class="content-card-body">
-                                <div class="form-group">
-                                    <label class="form-label">API 主机（grsai 默认）</label>
-                                    <select class="form-select" id="apiHostSelect">
-                                        <option value="https://grsaiapi.com">海外节点</option>
-                                        <option value="https://grsai.dakka.com.cn">国内直连</option>
-                                        <option value="custom">自定义...</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">自定义 API 主机</label>
-                                    <input class="form-input" id="apiHostCustomInput" placeholder="例如：https://api.example.com" autocomplete="off" />
-                                </div>
-                            </div>
-                        </div>
-
                         <div class="keys-list">
                             <div class="content-card-header">
                                 <h3 class="content-card-title">密钥列表</h3>
@@ -573,7 +552,7 @@
                                     </div>
                                     <div class="content-card-body">
                                         <div class="text-sm text-tertiary">
-                                            该功能走本机服务端处理（不是上游 API）。首次运行可能需要较长时间加载模型。
+                                            该功能实测并不好用，正在优化中。
                                         </div>
                                     </div>
                                 </div>
@@ -584,10 +563,6 @@
                 <!-- 设置页面 -->
                 <div class="page-section" id="page-settings">
                     <div class="settings">
-                        <div class="content-card-header">
-                            <h3 class="content-card-title" data-i18n="settings.title">设置项</h3>
-                        </div>
-
                         <div class="settings-group">
                             <h3 class="settings-group-title" data-i18n="settings.general">常规设置</h3>
                             <div class="settings-item">
@@ -618,11 +593,53 @@
                             </div>
                         </div>
                         <div class="settings-group">
+                            <div style="display:flex; align-items:center; justify-content:space-between; gap:0.75rem;">
+                                <h3 class="settings-group-title" style="margin-bottom:0;" data-i18n="settings.update.title">版本更新</h3>
+                                {% if github_repo_url %}
+                                <a href="{{ github_repo_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-sm" title="GitHub" aria-label="GitHub">
+                                    <i class="fab fa-github"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                            <div class="settings-item">
+                                <div class="settings-label">
+                                    <div class="settings-name" data-i18n="settings.update.current">当前版本</div>
+                                    <div class="settings-description" id="updateCurrentVersionText">v{{ app_version or '0.1.0' }}</div>
+                                </div>
+                            </div>
+                            <div class="settings-item">
+                                <div class="settings-label">
+                                    <div class="settings-name" data-i18n="settings.update.auto.name">自动检查更新</div>
+                                    <div class="settings-description" data-i18n="settings.update.auto.description">启动后联网检查，并在有新版本时提醒</div>
+                                </div>
+                                <label class="checkbox-label" style="display:flex;align-items:center;gap:0.5rem;">
+                                    <input type="checkbox" id="updateAutoCheckToggle" checked />
+                                    <span data-i18n="settings.update.auto.enabled">已启用</span>
+                                </label>
+                            </div>
+                            <div class="settings-item">
+                                <div class="settings-label">
+                                    <div class="settings-name" data-i18n="settings.update.status.name">更新状态</div>
+                                    <div class="settings-description" id="updateStatusText" data-i18n="settings.update.status.idle">尚未检查更新</div>
+                                    <a id="updateReleaseLink" href="#" target="_blank" rel="noopener noreferrer" style="display:none; margin-top: 0.25rem;" class="text-sm" data-i18n="settings.update.link">查看新版本</a>
+                                </div>
+                                <button class="btn btn-outline btn-sm" id="updateCheckBtn" type="button">
+                                    <i class="fas fa-cloud-download-alt"></i>
+                                    <span data-i18n="settings.update.check_btn">立即检查</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="settings-group">
                             <h3 class="settings-group-title" data-i18n="settings.note">说明</h3>
                             <div class="settings-item">
                                 <div class="settings-label">
-                                    <div class="settings-name" data-i18n="settings.api_model.name">API 与模型配置</div>
-                                    <div class="settings-description" data-i18n="settings.api_model.description">已迁移到“API 设置”页面统一管理。</div>
+                                    <div class="settings-name" data-i18n="settings.repo.name">GitHub 仓库     万水千山总是情 给个Star行不行 </div>
+                                    <div class="settings-description">
+                                        <a class="settings-link" href="https://github.com/JackaZhai/SCIdrawer" target="_blank" rel="noopener noreferrer">
+                                            <i class="fab fa-github" aria-hidden="true"></i>
+                                            <span>https://github.com/JackaZhai/SCIdrawer</span>
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -667,6 +684,7 @@
         window.AppConfig = {
             apiHost: "{{ api_host }}",
             hasApiKey: "{{ 'true' if has_api_key else 'false' }}" === "true",
+            appVersion: "{{ app_version or '0.1.0' }}",
             endpoints: {
                 draw: "{{ api_host }}/v1/draw/completions",
                 result: "{{ api_host }}/v1/draw/result",

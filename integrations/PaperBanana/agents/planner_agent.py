@@ -127,6 +127,7 @@ To help you understand the task better, and grasp the principles for generating 
 
 ** IMPORTANT: **
 Your description should be as detailed as possible. Semantically, clearly describe each element and their connections. Formally, include various details such as background style (typically pure white or very light pastel), colors, line thickness, icon styles, etc. Remember: vague or unclear specifications will only make the generated figure worse, not better.
+Do not include measurement-unit annotation text (e.g., 1cm, 2px, 12pt, 5mm, 300dpi) in labels unless the user explicitly requests it.
 """
 
 PLOT_PLANNER_AGENT_SYSTEM_PROMPT = """

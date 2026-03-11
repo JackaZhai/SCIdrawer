@@ -5,7 +5,7 @@
 // 应用状态管理
 const AppState = {
     currentPage: 'dashboard',
-    theme: localStorage.getItem('theme') || 'dark',
+    theme: localStorage.getItem('theme') || 'light',
     language: localStorage.getItem('uiLanguage') || 'zh-CN',
     hasKey: false,
     keyStore: null,
@@ -13,7 +13,9 @@ const AppState = {
     activeBaseUrl: '',
     isLoading: false,
     currentGeneration: null,
+    backgroundGenerationTracker: null,
     paperStageSnapshot: null,
+    lastMultimodalNoticeKey: '',
     notifications: [],
     referenceImages: []
 };
@@ -25,10 +27,15 @@ const WorkflowGraphState = {
     resizeBound: false,
     resizeObserver: null,
     criticRounds: 0,
-    activeCriticRound: 1
+    activeCriticRound: 1,
+    runtimeStage: 'queued',
+    runtimeStatus: 'idle'
 };
 
 const ACTIVITY_MAX_ITEMS = 3;
+const BACKGROUND_RESULT_POLL_INTERVAL_MS = 5000;
+const BACKGROUND_RESULT_MAX_BACKOFF_MS = 20000;
+const BACKGROUND_RESULT_MAX_DURATION_MS = 6 * 60 * 60 * 1000;
 
 // DOM 元素缓存
 const DOM = {
@@ -104,6 +111,11 @@ const DOM = {
     timeoutSelect: document.getElementById('timeoutSelect'),
     retrySelect: document.getElementById('retrySelect'),
     uiLanguageSelect: document.getElementById('uiLanguageSelect'),
+    updateCheckBtn: document.getElementById('updateCheckBtn'),
+    updateAutoCheckToggle: document.getElementById('updateAutoCheckToggle'),
+    updateStatusText: document.getElementById('updateStatusText'),
+    updateCurrentVersionText: document.getElementById('updateCurrentVersionText'),
+    updateReleaseLink: document.getElementById('updateReleaseLink'),
 
 };
 
@@ -134,8 +146,26 @@ const I18N_STRINGS = {
         'settings.theme.dark': '深色',
         'settings.theme.light': '浅色',
         'settings.note': '说明',
-        'settings.api_model.name': 'API 与模型配置',
-        'settings.api_model.description': '已迁移到“API 设置”页面统一管理。',
+        'settings.repo.name': 'GitHub 仓库',
+        'settings.update.title': '版本更新',
+        'settings.update.current': '当前版本',
+        'settings.update.auto.name': '自动检查更新',
+        'settings.update.auto.description': '启动后联网检查，并在有新版本时提醒',
+        'settings.update.auto.enabled': '已启用',
+        'settings.update.status.name': '更新状态',
+        'settings.update.status.idle': '尚未检查更新',
+        'settings.update.check_btn': '立即检查',
+        'settings.update.link': '查看新版本',
+        'update.status.checking': '正在联网检查更新...',
+        'update.status.not_configured': '未配置更新源（请设置 UPDATE_METADATA_URL 或 GITHUB_REPO）',
+        'update.status.up_to_date': '已是最新版本（v{current}）',
+        'update.status.new': '发现新版本 v{latest}（当前 v{current}）',
+        'update.status.error': '检查失败：{message}',
+        'update.notice.up_to_date': '当前已是最新版本 v{current}',
+        'update.notice.new': '发现新版本 v{latest}，当前 v{current}',
+        'update.notice.github_blocked': '查询更新失败，可能需要魔法的力量',
+        'update.notice.auto_on': '已开启自动检查更新',
+        'update.notice.auto_off': '已关闭自动检查更新',
         'paper.waiting': '等待开始',
         'paper.stage_prefix': '当前阶段：{stage}',
         'paper.processing_fallback': '处理中',
@@ -158,6 +188,8 @@ const I18N_STRINGS = {
         'workflow.summary.eval_off': '评估关闭',
         'workflow.summary.retrieval_default': '检索默认',
         'workflow.summary.retrieval_value': '检索={retrieval}',
+        'multimodal.guard.features': '审图迭代（Critic）、评估（Eval）、多模态流程（Full / Demo Full / Planner+Critic）',
+        'multimodal.guard.toast': '当前选择为非多模态语言模型，不能使用：{features}',
         'workflow.exp.vanilla': 'Vanilla（直接生图）',
         'workflow.exp.planner': 'Planner + 生图',
         'workflow.exp.planner_stylist': 'Planner + Stylist + 生图',
@@ -205,8 +237,26 @@ const I18N_STRINGS = {
         'settings.theme.dark': 'Dark',
         'settings.theme.light': 'Light',
         'settings.note': 'Notes',
-        'settings.api_model.name': 'API and Model Configuration',
-        'settings.api_model.description': 'Moved to "API Settings" for unified management.',
+        'settings.repo.name': 'GitHub Repository',
+        'settings.update.title': 'Updates',
+        'settings.update.current': 'Current Version',
+        'settings.update.auto.name': 'Auto Check Updates',
+        'settings.update.auto.description': 'Check online after startup and notify when a new version is available',
+        'settings.update.auto.enabled': 'Enabled',
+        'settings.update.status.name': 'Update Status',
+        'settings.update.status.idle': 'No update check yet',
+        'settings.update.check_btn': 'Check Now',
+        'settings.update.link': 'View Release',
+        'update.status.checking': 'Checking updates online...',
+        'update.status.not_configured': 'Update source is not configured (set UPDATE_METADATA_URL or GITHUB_REPO)',
+        'update.status.up_to_date': 'Up to date (v{current})',
+        'update.status.new': 'New version found: v{latest} (current v{current})',
+        'update.status.error': 'Check failed: {message}',
+        'update.notice.up_to_date': 'You are on the latest version v{current}',
+        'update.notice.new': 'New version v{latest} found, current v{current}',
+        'update.notice.github_blocked': 'Update check failed. You may need network bypass tools.',
+        'update.notice.auto_on': 'Auto update check enabled',
+        'update.notice.auto_off': 'Auto update check disabled',
         'paper.waiting': 'Waiting to start',
         'paper.stage_prefix': 'Current Stage: {stage}',
         'paper.processing_fallback': 'Processing',
@@ -229,6 +279,8 @@ const I18N_STRINGS = {
         'workflow.summary.eval_off': 'Eval off',
         'workflow.summary.retrieval_default': 'Retrieval default',
         'workflow.summary.retrieval_value': 'Retrieval={retrieval}',
+        'multimodal.guard.features': 'Critic iteration, Eval, multimodal pipelines (Full / Demo Full / Planner+Critic)',
+        'multimodal.guard.toast': 'Current text model is not multimodal. Unavailable: {features}',
         'workflow.exp.vanilla': 'Vanilla (direct generation)',
         'workflow.exp.planner': 'Planner + Generation',
         'workflow.exp.planner_stylist': 'Planner + Stylist + Generation',
@@ -299,6 +351,7 @@ function applyLanguage(language, rerender = true) {
         if (config && DOM.pageTitle) {
             DOM.pageTitle.textContent = t(config.titleKey);
         }
+        applyMultimodalFeatureGuard({ notify: false });
         updateWorkflowPreview(false);
         if (AppState.paperStageSnapshot) {
             updatePaperStage(
@@ -386,7 +439,17 @@ const PROVIDER_MODEL_CATALOG = {
         image: ['gemini-3-pro-image-preview']
     },
     openrouter: {
-        text: ['openai/gpt-4o-mini', 'anthropic/claude-3.5-sonnet', 'google/gemini-2.5-pro'],
+        text: [
+            'google/gemini-3-flash-preview',
+            'anthropic/claude-opus-4.6',
+            'anthropic/claude-sonnet-4.6',
+            'moonshotai/kimi-k2.5',
+            'google/gemini-2.5-flash',
+            'google/gemini-2.5-flash-lite',
+            'anthropic/claude-sonnet-4.5',
+            'openai/gpt-5.4',
+            'openai/gpt-4o-mini'
+        ],
         image: ['gpt-image-1']
     }
 };
@@ -412,6 +475,23 @@ const ALLOWED_IMAGE_MODELS = new Set([
     'gpt-image-1.5',
     'nano-banana-fast',
     'nano-banana-pro-vt'
+]);
+const MULTIMODAL_REQUIRED_EXP_MODES = new Set([
+    'dev_full',
+    'demo_full',
+    'dev_planner_critic',
+    'demo_planner_critic'
+]);
+const OPENROUTER_MULTIMODAL_TEXT_MODELS = new Set([
+    'google/gemini-3-flash-preview',
+    'anthropic/claude-opus-4.6',
+    'anthropic/claude-sonnet-4.6',
+    'moonshotai/kimi-k2.5',
+    'google/gemini-2.5-flash',
+    'google/gemini-2.5-flash-lite',
+    'anthropic/claude-sonnet-4.5',
+    'openai/gpt-5.4',
+    'openai/gpt-4o-mini'
 ]);
 
 function normalizeProviderName(provider) {
@@ -518,12 +598,26 @@ function renderProviderSelect(selectEl, providers, selectedValue) {
     }).join('') || '<option value="grsai">grsai</option>';
 }
 
-function renderFlatModelSelect(selectEl, models, selectedValue) {
+function getModelOptionLabel(provider, model, lane = 'text') {
+    const p = String(provider || '').trim().toLowerCase();
+    const m = String(model || '').trim().toLowerCase();
+    if (
+        lane === 'image' &&
+        p === 'grsai' &&
+        ['sora-image', 'gpt-image-1.5', 'nano-banana-fast'].includes(m)
+    ) {
+        return `${model}（价格便宜，测试用）`;
+    }
+    return model;
+}
+
+function renderFlatModelSelect(selectEl, models, selectedValue, provider = '', lane = 'text') {
     if (!selectEl) return;
     const list = Array.isArray(models) ? models : [];
     selectEl.innerHTML = list.map((model) => {
         const selected = model === selectedValue ? ' selected' : '';
-        return `<option value="${escapeHtml(model)}"${selected}>${escapeHtml(model)}</option>`;
+        const label = getModelOptionLabel(provider, model, lane);
+        return `<option value="${escapeHtml(model)}"${selected}>${escapeHtml(label)}</option>`;
     }).join('') || '<option value="">无可用模型</option>';
 }
 
@@ -560,12 +654,16 @@ function refreshGenerationModelOptions(storeOverride = null) {
     renderFlatModelSelect(
         DOM.generationTextModelSelect,
         textModels,
-        textModels.includes(prefText) ? prefText : currentText
+        textModels.includes(prefText) ? prefText : currentText,
+        selectedTextProvider,
+        'text'
     );
     renderFlatModelSelect(
         DOM.generationImageModelSelect,
         imageModels,
-        imageModels.includes(prefImage) ? prefImage : currentImage
+        imageModels.includes(prefImage) ? prefImage : currentImage,
+        selectedImageProvider,
+        'image'
     );
 
     if (DOM.generationTextModelSelect && !DOM.generationTextModelSelect.value) {
@@ -577,6 +675,7 @@ function refreshGenerationModelOptions(storeOverride = null) {
 
     persistLaneModelSelection('text', selectedTextProvider, DOM.generationTextModelSelect ? DOM.generationTextModelSelect.value : '');
     persistLaneModelSelection('image', selectedImageProvider, DOM.generationImageModelSelect ? DOM.generationImageModelSelect.value : '');
+    refreshGenerationWorkflowControlState(false);
 }
 
 async function loadGenerationModelOptionsFromKeys() {
@@ -594,13 +693,77 @@ async function loadGenerationModelOptionsFromKeys() {
     }
 }
 
+function normalizePaperStatus(status) {
+    const raw = String(status || '').trim().toLowerCase();
+    if (raw === 'failed' || raw === 'error') return 'failed';
+    if (raw === 'succeeded' || raw === 'success' || raw === 'completed' || raw === 'done') return 'succeeded';
+    if (raw === 'idle' || raw === 'waiting') return 'idle';
+    return 'running';
+}
+
+function includesAnyKeyword(text, keywords) {
+    if (!text) return false;
+    return keywords.some((k) => text.includes(k));
+}
+
+function inferRuntimeStageFromHints(stage, message) {
+    const stageText = String(stage || '').trim().toLowerCase();
+    const msgText = String(message || '').trim().toLowerCase();
+    const combined = `${stageText} ${msgText}`.trim();
+    if (!combined) return '';
+
+    if (includesAnyKeyword(combined, ['processing_retriever', 'retriev', '检索'])) {
+        return 'processing_retriever';
+    }
+    if (includesAnyKeyword(combined, ['processing_planner', 'planner', '规划', '计划'])) {
+        return 'processing_planner';
+    }
+    if (includesAnyKeyword(combined, ['processing_stylist', 'stylist', 'style', '风格'])) {
+        return 'processing_stylist';
+    }
+    // Critic should win over visualizer when message contains both (e.g. "根据批评建议重新生成图像")
+    if (includesAnyKeyword(combined, ['processing_critic', 'critic', '批评', '审图'])) {
+        return 'processing_critic';
+    }
+    if (includesAnyKeyword(combined, ['processing_visualizer', 'visualizer', 'render', '绘图', '生图', '图像生成'])) {
+        return 'processing_visualizer';
+    }
+    if (includesAnyKeyword(combined, ['processing_eval', 'evaluation', 'eval', '评估'])) {
+        return 'processing_eval';
+    }
+    if (includesAnyKeyword(combined, ['saving', 'save', 'write', 'persist', '保存', '写入'])) {
+        return 'saving';
+    }
+    if (includesAnyKeyword(combined, ['completed', 'complete', 'done', 'success', '完成', '成功'])) {
+        return 'completed';
+    }
+    if (includesAnyKeyword(combined, ['failed', 'fail', 'error', '失败', '异常', '取消'])) {
+        return 'failed';
+    }
+    if (includesAnyKeyword(combined, ['loading_agents', 'load', 'agent', '加载'])) {
+        return 'loading_agents';
+    }
+    if (includesAnyKeyword(combined, ['initializing', 'initialize', 'init', '启动', '初始化'])) {
+        return 'initializing';
+    }
+    if (includesAnyKeyword(combined, ['queued', 'queue', 'wait', '排队', '等待'])) {
+        return 'queued';
+    }
+    if (includesAnyKeyword(combined, ['processing', 'infer', '推理', '处理中'])) {
+        return 'processing';
+    }
+    return '';
+}
+
 function extractCriticRoundFromMessage(message, maxRounds) {
-    const text = String(message || '');
+    const text = String(message || '').trim();
     if (!text || maxRounds <= 0) return null;
+    const criticHint = /critic/i.test(text) || /批评|审图/.test(text);
+    if (!criticHint) return null;
     const patterns = [
-        /(\d+)\s*\/\s*(\d+)/,
-        /第\s*(\d+)\s*轮/,
-        /round\s*(\d+)/i
+        /第\s*(\d+)(?:\s*\/\s*\d+)?\s*轮/,
+        /round\s*(\d+)(?:\s*\/\s*\d+)?/i,
+        /critic\s*(?:round)?\s*(\d+)(?:\s*\/\s*\d+)?/i
     ];
 
     for (const p of patterns) {
@@ -615,19 +778,49 @@ function extractCriticRoundFromMessage(message, maxRounds) {
 }
 
 function resolveRuntimeStageKey(stage, message) {
-    const hasKnownStage = stage && PAPER_STAGE_ORDER.includes(stage);
-    const safeStage = hasKnownStage ? stage : 'queued';
-    if (safeStage !== 'processing_critic') return safeStage;
+    const visibleOrder = WorkflowGraphState.stageOrder.length
+        ? WorkflowGraphState.stageOrder
+        : [...PAPER_STAGE_ORDER];
+    const normalizedStatus = normalizePaperStatus(WorkflowGraphState.runtimeStatus);
+    const rawStage = String(stage || '').trim();
+    const isDynamicCriticRound = /^processing_critic_round_\d+$/.test(rawStage);
+    const hasKnownStage = !!rawStage && (PAPER_STAGE_ORDER.includes(rawStage) || isDynamicCriticRound);
+    const inferredStage = hasKnownStage ? rawStage : inferRuntimeStageFromHints(stage, message);
+    let runtimeStage = inferredStage || WorkflowGraphState.runtimeStage || (visibleOrder[0] || 'queued');
 
     const maxRounds = Math.max(0, WorkflowGraphState.criticRounds || 0);
-    if (maxRounds <= 0) return safeStage;
-    const extracted = extractCriticRoundFromMessage(message, maxRounds);
-    if (extracted) {
-        WorkflowGraphState.activeCriticRound = extracted;
-    } else {
-        WorkflowGraphState.activeCriticRound = Math.max(1, Math.min(maxRounds, WorkflowGraphState.activeCriticRound || 1));
+    if (runtimeStage === 'processing_critic' && maxRounds > 0) {
+        const previousRound = Math.max(1, Math.min(
+            maxRounds,
+            getCriticRoundFromStage(WorkflowGraphState.runtimeStage) || WorkflowGraphState.activeCriticRound || 1
+        ));
+        const extracted = extractCriticRoundFromMessage(message, maxRounds);
+        WorkflowGraphState.activeCriticRound = extracted
+            ? Math.max(previousRound, extracted)
+            : previousRound;
+        runtimeStage = `processing_critic_round_${WorkflowGraphState.activeCriticRound}`;
     }
-    return `processing_critic_round_${WorkflowGraphState.activeCriticRound}`;
+
+    if (!visibleOrder.includes(runtimeStage)) {
+        const fallback = WorkflowGraphState.runtimeStage;
+        runtimeStage = (fallback && visibleOrder.includes(fallback))
+            ? fallback
+            : (visibleOrder[0] || 'queued');
+    }
+
+    if (normalizedStatus !== 'running') {
+        return runtimeStage;
+    }
+
+    const previousStage = (WorkflowGraphState.runtimeStage && visibleOrder.includes(WorkflowGraphState.runtimeStage))
+        ? WorkflowGraphState.runtimeStage
+        : (visibleOrder[0] || 'queued');
+    const previousIdx = visibleOrder.indexOf(previousStage);
+    const currentIdx = visibleOrder.indexOf(runtimeStage);
+    if (previousIdx !== -1 && currentIdx !== -1 && currentIdx < previousIdx) {
+        return previousStage;
+    }
+    return runtimeStage;
 }
 
 function resolvePaperStageMessage(message) {
@@ -637,26 +830,44 @@ function resolvePaperStageMessage(message) {
 }
 
 function updatePaperStage(stage, message, status = 'running') {
-    AppState.paperStageSnapshot = { stage, message, status };
-    const runtimeStage = resolveRuntimeStageKey(stage, message);
-    const titleStage = runtimeStage.startsWith('processing_critic_round_')
-        ? runtimeStage
-        : (PAPER_STAGE_ORDER.includes(runtimeStage) ? runtimeStage : 'queued');
+    const normalizedStatus = normalizePaperStatus(status);
     const visibleOrder = WorkflowGraphState.stageOrder.length
         ? WorkflowGraphState.stageOrder
         : [...PAPER_STAGE_ORDER];
+    const explicitStage = String(stage || '').trim();
+    const isTaskStart = normalizedStatus === 'running' && explicitStage === 'queued';
+
+    if (normalizedStatus === 'idle' || isTaskStart) {
+        WorkflowGraphState.runtimeStage = 'queued';
+        WorkflowGraphState.activeCriticRound = 1;
+    }
+
+    WorkflowGraphState.runtimeStatus = normalizedStatus;
+    let runtimeStage = resolveRuntimeStageKey(stage, message);
+    if (normalizedStatus === 'succeeded' && visibleOrder.includes('completed')) {
+        runtimeStage = 'completed';
+    } else if (normalizedStatus === 'idle') {
+        runtimeStage = 'queued';
+    }
+    WorkflowGraphState.runtimeStage = runtimeStage;
+    AppState.paperStageSnapshot = { stage: runtimeStage, message, status: normalizedStatus };
+    const titleStage = runtimeStage.startsWith('processing_critic_round_')
+        ? runtimeStage
+        : (PAPER_STAGE_ORDER.includes(runtimeStage) ? runtimeStage : (WorkflowGraphState.runtimeStage || 'queued'));
     const currentIdx = visibleOrder.indexOf(runtimeStage);
     const items = getPaperStageItems();
 
     if (DOM.paperStageTitle) {
-        DOM.paperStageTitle.textContent = status === 'idle'
+        DOM.paperStageTitle.textContent = normalizedStatus === 'idle'
             ? t('paper.waiting')
             : t('paper.stage_prefix', { stage: getStageLabelByKey(titleStage) || t('paper.processing_fallback') });
     }
     if (DOM.paperStageChip) {
-        DOM.paperStageChip.textContent = status === 'idle'
+        DOM.paperStageChip.textContent = normalizedStatus === 'idle'
             ? t('paper.chip.idle')
-            : (status === 'failed' ? t('paper.chip.failed') : (status === 'succeeded' ? t('paper.chip.succeeded') : t('paper.chip.running')));
+            : (normalizedStatus === 'failed'
+                ? t('paper.chip.failed')
+                : (normalizedStatus === 'succeeded' ? t('paper.chip.succeeded') : t('paper.chip.running')));
     }
     if (DOM.paperStageMessage) {
         DOM.paperStageMessage.textContent = resolvePaperStageMessage(message) || t('paper.message.processing');
@@ -667,15 +878,15 @@ function updatePaperStage(stage, message, status = 'running') {
             const itemStage = item.dataset.stage;
             const itemIdx = visibleOrder.indexOf(itemStage);
             item.classList.remove('is-done', 'is-current', 'is-failed');
-            if (status !== 'idle') {
+            if (normalizedStatus !== 'idle') {
                 item.classList.remove('is-preview-current');
             }
 
-            if (status === 'idle' || itemIdx === -1 || currentIdx === -1) {
+            if (normalizedStatus === 'idle' || itemIdx === -1 || currentIdx === -1) {
                 return;
             }
 
-            if (status === 'failed') {
+            if (normalizedStatus === 'failed') {
                 if (itemIdx === currentIdx) {
                     item.classList.add('is-failed');
                 } else if (itemIdx < currentIdx) {
@@ -684,7 +895,7 @@ function updatePaperStage(stage, message, status = 'running') {
                 return;
             }
 
-            if (status === 'succeeded') {
+            if (normalizedStatus === 'succeeded') {
                 item.classList.add('is-done');
                 return;
             }
@@ -696,7 +907,7 @@ function updatePaperStage(stage, message, status = 'running') {
             }
         });
     }
-    if (DOM.paperStageList && status !== 'idle') {
+    if (DOM.paperStageList && normalizedStatus !== 'idle') {
         DOM.paperStageList.classList.remove('is-workflow-updating');
     }
     queueWorkflowGraphRender();
@@ -706,6 +917,115 @@ function updatePaperTaskId(taskId) {
     if (!DOM.paperTaskIdText) return;
     const id = (taskId || '').trim();
     DOM.paperTaskIdText.textContent = id ? t('paper.task_id', { id }) : t('paper.task_id_empty');
+}
+
+function stopBackgroundGenerationTracking(expectedTaskId = '') {
+    const tracker = AppState.backgroundGenerationTracker;
+    if (!tracker) return false;
+    if (expectedTaskId && tracker.taskId !== expectedTaskId) return false;
+    if (tracker.timerId) {
+        clearTimeout(tracker.timerId);
+    }
+    AppState.backgroundGenerationTracker = null;
+    return true;
+}
+
+function scheduleBackgroundGenerationPoll(taskId, delayMs = BACKGROUND_RESULT_POLL_INTERVAL_MS) {
+    const tracker = AppState.backgroundGenerationTracker;
+    if (!tracker || tracker.taskId !== taskId) return;
+    if (tracker.timerId) {
+        clearTimeout(tracker.timerId);
+    }
+    tracker.timerId = setTimeout(() => {
+        pollBackgroundGenerationTask(taskId).catch((error) => {
+            console.warn('后台查询任务状态失败:', error);
+        });
+    }, Math.max(1000, delayMs));
+}
+
+async function pollBackgroundGenerationTask(taskId) {
+    const tracker = AppState.backgroundGenerationTracker;
+    if (!tracker || tracker.taskId !== taskId) return;
+
+    const activeTaskId = AppState.currentGeneration && AppState.currentGeneration.taskId
+        ? String(AppState.currentGeneration.taskId)
+        : '';
+    if (activeTaskId && activeTaskId !== taskId) {
+        stopBackgroundGenerationTracking(taskId);
+        return;
+    }
+
+    if (Date.now() - tracker.startedAt > BACKGROUND_RESULT_MAX_DURATION_MS) {
+        stopBackgroundGenerationTracking(taskId);
+        showNotification(`后台自动查询已停止，请稍后重试。任务ID：${taskId}`, 'warning');
+        return;
+    }
+
+    try {
+        const pollResult = await window.APIService.getImageResult(taskId);
+        const result = pollResult && pollResult.data ? pollResult.data : null;
+        if (!result) {
+            throw new Error('empty result');
+        }
+
+        tracker.consecutiveErrors = 0;
+        updatePaperTaskId(taskId);
+
+        if (result.status === 'succeeded') {
+            stopBackgroundGenerationTracking(taskId);
+            handleImageGenerationComplete(result);
+            return;
+        }
+
+        if (result.status === 'failed') {
+            stopBackgroundGenerationTracking(taskId);
+            const failMessage = result.stageMessage || result.failure_reason || result.error || '任务失败';
+            updatePaperStage(result.stage || 'failed', failMessage, 'failed');
+            showNotification(`任务执行失败：${failMessage}`, 'error');
+            return;
+        }
+
+        const progressValue = Number(result.progress);
+        if (Number.isFinite(progressValue)) {
+            const safeProgress = Math.max(5, Math.min(99, Math.round(progressValue)));
+            if (DOM.progressBar) DOM.progressBar.style.width = `${safeProgress}%`;
+            if (DOM.progressText) DOM.progressText.textContent = `${safeProgress}%`;
+        }
+
+        updatePaperStage(
+            result.stage || 'processing',
+            result.stageMessage || t('paper.message.processing'),
+            result.status || 'running'
+        );
+        scheduleBackgroundGenerationPoll(taskId, BACKGROUND_RESULT_POLL_INTERVAL_MS);
+    } catch (error) {
+        const latest = AppState.backgroundGenerationTracker;
+        if (!latest || latest.taskId !== taskId) return;
+
+        latest.consecutiveErrors = (latest.consecutiveErrors || 0) + 1;
+        const retryDelay = Math.min(
+            BACKGROUND_RESULT_MAX_BACKOFF_MS,
+            BACKGROUND_RESULT_POLL_INTERVAL_MS + latest.consecutiveErrors * 1000
+        );
+        scheduleBackgroundGenerationPoll(taskId, retryDelay);
+    }
+}
+
+function startBackgroundGenerationTracking(taskId) {
+    const id = String(taskId || '').trim();
+    if (!id) return;
+
+    const current = AppState.backgroundGenerationTracker;
+    if (current && current.taskId === id) return;
+
+    stopBackgroundGenerationTracking();
+    AppState.backgroundGenerationTracker = {
+        taskId: id,
+        timerId: null,
+        startedAt: Date.now(),
+        consecutiveErrors: 0
+    };
+    scheduleBackgroundGenerationPoll(id, 3000);
 }
 
 function getGenerationWorkflowConfig() {
@@ -726,6 +1046,130 @@ function getGenerationWorkflowConfig() {
         evalEnabled,
         criticRounds: Math.max(0, Math.min(10, Math.trunc(criticRounds)))
     };
+}
+
+function isTextModelMultimodal(provider, model) {
+    const p = String(provider || '').trim().toLowerCase();
+    const m = String(model || '').trim().toLowerCase();
+    if (!m) return false;
+
+    // 当前产品约束：grsai / deepseek 语言模型按非多模态处理
+    if (p === 'grsai' || p === 'deepseek') {
+        return false;
+    }
+
+    if (p === 'openrouter') {
+        if (OPENROUTER_MULTIMODAL_TEXT_MODELS.has(m)) return true;
+        return [
+            'gemini',
+            'claude',
+            'gpt-4o',
+            'gpt-5',
+            'kimi-k2.5',
+            'vision',
+            'vl',
+            'multimodal'
+        ].some((k) => m.includes(k));
+    }
+    if (p === 'google') {
+        return m.includes('gemini');
+    }
+    if (p === 'anthropic') {
+        return m.includes('claude-3') || m.includes('claude-4');
+    }
+    return [
+        'gpt-4o',
+        'gpt-4.1',
+        'gpt-4.5',
+        'o1',
+        'o3',
+        'gemini',
+        'claude-3',
+        'claude-4',
+        'vision',
+        'vl',
+        'gpt-image',
+        '-vt',
+        'multimodal'
+    ].some((k) => m.includes(k));
+}
+
+function workflowNeedsMultimodal(expModeRaw, criticEnabled, evalEnabled, criticRounds) {
+    const expMode = String(expModeRaw || '').trim() || 'dev_full';
+    const supportsCritic = MULTIMODAL_REQUIRED_EXP_MODES.has(expMode);
+    const effectiveCriticRounds = (supportsCritic && criticEnabled)
+        ? Math.max(0, Math.min(10, Math.trunc(Number(criticRounds) || 0)))
+        : 0;
+    let doEval = !!evalEnabled;
+    if (['demo_full', 'demo_planner_critic', 'dev_retriever'].includes(expMode)) {
+        doEval = false;
+    }
+    return effectiveCriticRounds > 0 || doEval;
+}
+
+function pickSafeExpMode() {
+    if (!DOM.generationExpModeSelect) return 'dev_planner_stylist';
+    const values = Array.from(DOM.generationExpModeSelect.options).map((opt) => opt.value);
+    if (values.includes('dev_planner_stylist')) return 'dev_planner_stylist';
+    if (values.includes('dev_planner')) return 'dev_planner';
+    if (values.includes('vanilla')) return 'vanilla';
+    return values[0] || 'dev_planner_stylist';
+}
+
+function getMultimodalBlockedFeaturesText() {
+    return t('multimodal.guard.features');
+}
+
+function applyMultimodalFeatureGuard(options = {}) {
+    const { notify = false } = options;
+    const textProvider = DOM.generationTextProviderSelect ? DOM.generationTextProviderSelect.value : 'grsai';
+    const textModel = DOM.generationTextModelSelect ? DOM.generationTextModelSelect.value : '';
+    const multimodal = isTextModelMultimodal(textProvider, textModel);
+
+    if (DOM.generationExpModeSelect) {
+        Array.from(DOM.generationExpModeSelect.options).forEach((opt) => {
+            if (MULTIMODAL_REQUIRED_EXP_MODES.has(opt.value)) {
+                opt.disabled = !multimodal;
+            }
+        });
+
+        const currentMode = (DOM.generationExpModeSelect.value || '').trim() || 'dev_full';
+        if (!multimodal && MULTIMODAL_REQUIRED_EXP_MODES.has(currentMode)) {
+            const fallback = pickSafeExpMode();
+            if (fallback !== currentMode) {
+                DOM.generationExpModeSelect.value = fallback;
+                localStorage.setItem('generationExpMode', fallback);
+            }
+        }
+    }
+
+    if (DOM.generationCriticEnabledCheck) {
+        if (!multimodal) DOM.generationCriticEnabledCheck.checked = false;
+    }
+    if (DOM.generationEvalEnabledCheck) {
+        if (!multimodal) DOM.generationEvalEnabledCheck.checked = false;
+        DOM.generationEvalEnabledCheck.disabled = !multimodal;
+    }
+    if (DOM.generationCriticRoundsInput && !multimodal && DOM.generationCriticRoundsInput.value !== '0') {
+        DOM.generationCriticRoundsInput.value = '0';
+    }
+
+    const hasModel = !!String(textModel || '').trim();
+    if (!multimodal && notify && hasModel) {
+        const noticeKey = `${String(textProvider || '').trim().toLowerCase()}::${String(textModel || '').trim().toLowerCase()}`;
+        if (AppState.lastMultimodalNoticeKey !== noticeKey) {
+            showNotification(
+                t('multimodal.guard.toast', { features: getMultimodalBlockedFeaturesText() }),
+                'warning'
+            );
+            AppState.lastMultimodalNoticeKey = noticeKey;
+        }
+    }
+    if (multimodal || !hasModel) {
+        AppState.lastMultimodalNoticeKey = '';
+    }
+
+    return multimodal;
 }
 
 function syncGenerationWorkflowOptions() {
@@ -753,7 +1197,7 @@ function syncGenerationWorkflowOptions() {
     updateWorkflowPreview(false);
 }
 
-function refreshGenerationWorkflowControlState() {
+function refreshGenerationWorkflowControlState(notify = false) {
     const expMode = DOM.generationExpModeSelect ? (DOM.generationExpModeSelect.value || 'dev_full') : 'dev_full';
     const isVanilla = expMode === 'vanilla';
     const supportsCritic = ['dev_full', 'demo_full', 'dev_planner_critic', 'demo_planner_critic'].includes(expMode);
@@ -767,6 +1211,16 @@ function refreshGenerationWorkflowControlState() {
     if (DOM.generationCriticRoundsInput) {
         const criticEnabled = DOM.generationCriticEnabledCheck ? DOM.generationCriticEnabledCheck.checked : true;
         DOM.generationCriticRoundsInput.disabled = !supportsCritic || !criticEnabled;
+    }
+    applyMultimodalFeatureGuard({ notify });
+    const finalExpMode = DOM.generationExpModeSelect ? (DOM.generationExpModeSelect.value || 'dev_full') : 'dev_full';
+    const finalSupportsCritic = ['dev_full', 'demo_full', 'dev_planner_critic', 'demo_planner_critic'].includes(finalExpMode);
+    if (DOM.generationCriticEnabledCheck) {
+        DOM.generationCriticEnabledCheck.disabled = !finalSupportsCritic || DOM.generationCriticEnabledCheck.disabled;
+    }
+    if (DOM.generationCriticRoundsInput) {
+        const criticEnabled = DOM.generationCriticEnabledCheck ? DOM.generationCriticEnabledCheck.checked : true;
+        DOM.generationCriticRoundsInput.disabled = DOM.generationCriticRoundsInput.disabled || !finalSupportsCritic || !criticEnabled;
     }
 }
 
@@ -1089,6 +1543,11 @@ function renderWorkflowGraph() {
     const focusStage = isIdleSnapshot
         ? ''
         : (focusByPreview || visibleOrder.find((stage) => stage.startsWith('processing_')) || '');
+    const isFlowAnimated = !prefersReducedMotion() && (
+        AppState.isLoading ||
+        (AppState.paperStageSnapshot && AppState.paperStageSnapshot.status === 'running') ||
+        (DOM.paperStageList && DOM.paperStageList.classList.contains('is-workflow-updating'))
+    );
 
     for (let i = 0; i < visibleOrder.length - 1; i += 1) {
         const fromStage = visibleOrder[i];
@@ -1098,13 +1557,16 @@ function renderWorkflowGraph() {
         if (!fromMeta || !toMeta) continue;
         const path = buildWorkflowArrowPath(fromMeta, toMeta);
         const isFocusPath = focusStage && (fromStage === focusStage || toStage === focusStage);
-        paths.push(`<path class="workflow-edge ${isFocusPath ? 'is-focus' : ''}" d="${path}" marker-end="url(#${markerId})"></path>`);
+        const classes = ['workflow-edge'];
+        if (isFocusPath) classes.push('is-focus');
+        if (isFlowAnimated) classes.push('is-animated');
+        paths.push(`<path class="${classes.join(' ')}" d="${path}" marker-end="url(#${markerId})"></path>`);
     }
 
     DOM.paperWorkflowArrows.innerHTML = `
         <defs>
             <marker id="${markerId}" markerWidth="6" markerHeight="6" refX="5.4" refY="3" orient="auto">
-                <path d="M0,0 L6,3 L0,6 Z" fill="currentColor"></path>
+                <path class="workflow-arrowhead ${isFlowAnimated ? 'is-animated' : ''}" d="M0,0 L6,3 L0,6 Z" fill="currentColor"></path>
             </marker>
         </defs>
         ${paths.join('')}
@@ -1279,6 +1741,121 @@ function initWorkflowGraph() {
     queueWorkflowGraphRender();
 }
 
+function isAutoUpdateCheckEnabled() {
+    return localStorage.getItem('autoUpdateCheck') !== 'false';
+}
+
+function setUpdateStatusText(message) {
+    if (DOM.updateStatusText) {
+        DOM.updateStatusText.textContent = message;
+    }
+}
+
+function setUpdateReleaseLink(url) {
+    if (!DOM.updateReleaseLink) return;
+    const link = String(url || '').trim();
+    if (link) {
+        DOM.updateReleaseLink.href = link;
+        DOM.updateReleaseLink.style.display = '';
+    } else {
+        DOM.updateReleaseLink.href = '#';
+        DOM.updateReleaseLink.style.display = 'none';
+    }
+}
+
+function shouldShowGithubBypassNotice(message, payload = null) {
+    const text = String(message || '').toLowerCase();
+    const source = String((payload && payload.source) || '').toLowerCase();
+    const unreachable = payload && payload.reachable === false;
+    const isNotConfigured = text.includes('未配置更新源') || text.includes('not configured');
+    if (isNotConfigured) return false;
+    if (source === 'github' && unreachable) return true;
+
+    const hasGithubMarker = text.includes('github') || text.includes('api.github.com');
+    if (!hasGithubMarker) return false;
+
+    return [
+        '更新源访问失败',
+        'failed to fetch',
+        'networkerror',
+        'timeout',
+        'timed out',
+        'enotfound',
+        'econnreset',
+        'ssl',
+        'connection'
+    ].some((k) => text.includes(k));
+}
+
+async function checkForUpdates(options = {}) {
+    const { silent = false, showNoUpdateToast = true } = options;
+    const currentFallbackVersion = String((window.AppConfig && window.AppConfig.appVersion) || '0.1.0');
+
+    if (DOM.updateCheckBtn) {
+        DOM.updateCheckBtn.disabled = true;
+    }
+    setUpdateStatusText(t('update.status.checking'));
+
+    try {
+        const data = await window.APIService.checkAppUpdate();
+        const current = String(data.currentVersion || currentFallbackVersion);
+        const latest = String(data.latestVersion || current);
+        const hasUpdate = !!data.hasUpdate;
+        const configured = data.configured !== false;
+        const message = String(data.message || '').trim();
+
+        if (DOM.updateCurrentVersionText) {
+            DOM.updateCurrentVersionText.textContent = `v${current}`;
+        }
+
+        if (!configured) {
+            setUpdateStatusText(message || t('update.status.not_configured'));
+            setUpdateReleaseLink('');
+            return;
+        }
+
+        if (message) {
+            setUpdateStatusText(message);
+            setUpdateReleaseLink('');
+            if (!silent) {
+                const notifyMessage = shouldShowGithubBypassNotice(message, data)
+                    ? t('update.notice.github_blocked')
+                    : message;
+                showNotification(notifyMessage, 'warning');
+            }
+            return;
+        }
+
+        if (hasUpdate) {
+            setUpdateStatusText(t('update.status.new', { latest, current }));
+            setUpdateReleaseLink(data.releaseUrl || data.downloadUrl || '');
+            if (!silent) {
+                showNotification(t('update.notice.new', { latest, current }), 'warning');
+            }
+        } else {
+            setUpdateStatusText(t('update.status.up_to_date', { current }));
+            setUpdateReleaseLink('');
+            if (!silent && showNoUpdateToast) {
+                showNotification(t('update.notice.up_to_date', { current }), 'success');
+            }
+        }
+    } catch (error) {
+        const message = String((error && error.message) || 'unknown error');
+        setUpdateStatusText(t('update.status.error', { message }));
+        setUpdateReleaseLink('');
+        if (!silent) {
+            const notifyMessage = shouldShowGithubBypassNotice(message)
+                ? t('update.notice.github_blocked')
+                : t('update.status.error', { message });
+            showNotification(notifyMessage, 'error');
+        }
+    } finally {
+        if (DOM.updateCheckBtn) {
+            DOM.updateCheckBtn.disabled = false;
+        }
+    }
+}
+
 // 初始化应用
 function initApp() {
     console.log("初始化 SCIdrawer 应用...");
@@ -1300,6 +1877,16 @@ function initApp() {
     showPage(AppState.currentPage);
     updatePaperStage('queued', 'i18n:paper.message.idle_hint', 'idle');
     updatePaperTaskId('');
+    if (DOM.updateCurrentVersionText) {
+        const version = String((window.AppConfig && window.AppConfig.appVersion) || '0.1.0');
+        DOM.updateCurrentVersionText.textContent = `v${version}`;
+    }
+
+    if (isAutoUpdateCheckEnabled()) {
+        setTimeout(() => {
+            checkForUpdates({ silent: true, showNoUpdateToast: false });
+        }, 1500);
+    }
 
     console.log('应用初始化完成');
 }
@@ -1423,6 +2010,8 @@ function bindEvents() {
             persistLaneModelSelection('text', prev, DOM.generationTextModelSelect ? DOM.generationTextModelSelect.value : '');
             localStorage.setItem('generationTextProvider', DOM.generationTextProviderSelect.value || 'grsai');
             refreshGenerationModelOptions();
+            refreshGenerationWorkflowControlState(true);
+            updateWorkflowPreview(true);
         });
     }
     if (DOM.generationImageProviderSelect) {
@@ -1437,6 +2026,8 @@ function bindEvents() {
         DOM.generationTextModelSelect.addEventListener('change', () => {
             const provider = (DOM.generationTextProviderSelect && DOM.generationTextProviderSelect.value) || 'grsai';
             persistLaneModelSelection('text', provider, DOM.generationTextModelSelect.value || '');
+            refreshGenerationWorkflowControlState(true);
+            updateWorkflowPreview(true);
         });
     }
     if (DOM.generationImageModelSelect) {
@@ -1448,7 +2039,7 @@ function bindEvents() {
     if (DOM.generationExpModeSelect) {
         DOM.generationExpModeSelect.addEventListener('change', () => {
             localStorage.setItem('generationExpMode', (DOM.generationExpModeSelect.value || '').trim());
-            refreshGenerationWorkflowControlState();
+            refreshGenerationWorkflowControlState(true);
             updateWorkflowPreview(true);
         });
     }
@@ -1498,15 +2089,23 @@ function bindEvents() {
         DOM.retrySelect.addEventListener('change', saveSettings);
     }
 
-    // API主机选择
-    const apiHostSelect = document.getElementById('apiHostSelect');
-    if (apiHostSelect) {
-        apiHostSelect.addEventListener('change', saveSettings);
+    if (DOM.updateCheckBtn) {
+        DOM.updateCheckBtn.addEventListener('click', () => {
+            checkForUpdates({ silent: false, showNoUpdateToast: true });
+        });
     }
-    const apiHostCustomInput = document.getElementById('apiHostCustomInput');
-    if (apiHostCustomInput) {
-        apiHostCustomInput.addEventListener('change', saveSettings);
-        apiHostCustomInput.addEventListener('blur', saveSettings);
+    if (DOM.updateAutoCheckToggle) {
+        DOM.updateAutoCheckToggle.addEventListener('change', () => {
+            const enabled = !!DOM.updateAutoCheckToggle.checked;
+            localStorage.setItem('autoUpdateCheck', enabled ? 'true' : 'false');
+            showNotification(
+                enabled ? t('update.notice.auto_on') : t('update.notice.auto_off'),
+                'info'
+            );
+            if (enabled) {
+                checkForUpdates({ silent: true, showNoUpdateToast: false });
+            }
+        });
     }
 
     // 流式响应开关
@@ -1813,7 +2412,7 @@ function renderReferenceImages() {
     if (!DOM.referenceImagesList) return;
 
     if (AppState.referenceImages.length === 0) {
-        DOM.referenceImagesList.innerHTML = '<div class=\"reference-empty\">No reference images</div>';
+        DOM.referenceImagesList.innerHTML = '';
         return;
     }
 
@@ -1960,12 +2559,6 @@ async function generateImage() {
         return;
     }
 
-    AppState.isLoading = true;
-    const generationController = { cancelled: false, taskId: null };
-    AppState.currentGeneration = generationController;
-    DOM.generateBtn.disabled = true;
-    DOM.generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 生成中...';
-
     const prompt = DOM.promptInput.value;
     const textProvider = DOM.generationTextProviderSelect ? DOM.generationTextProviderSelect.value : 'grsai';
     const imageProvider = DOM.generationImageProviderSelect ? DOM.generationImageProviderSelect.value : 'grsai';
@@ -1983,6 +2576,29 @@ async function generateImage() {
     const workflowCriticRounds = Number.isFinite(workflowCriticRoundsRaw)
         ? Math.max(0, Math.min(10, Math.trunc(workflowCriticRoundsRaw)))
         : 3;
+    const needsMultimodal = workflowNeedsMultimodal(
+        workflowExpMode,
+        workflowCriticEnabled,
+        workflowEvalEnabled,
+        workflowCriticRounds
+    );
+    const textModelMultimodal = isTextModelMultimodal(textProvider, textModel);
+    if (needsMultimodal && !textModelMultimodal) {
+        ErrorHandler.handleValidationError(
+            '语言模型',
+            '当前语言模型不是多模态，已屏蔽 Critic/Eval。请改用支持视觉的模型或关闭这些功能。'
+        );
+        refreshGenerationWorkflowControlState(true);
+        updateWorkflowPreview(false);
+        return;
+    }
+
+    stopBackgroundGenerationTracking();
+    AppState.isLoading = true;
+    const generationController = { cancelled: false, taskId: null };
+    AppState.currentGeneration = generationController;
+    DOM.generateBtn.disabled = true;
+    DOM.generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 生成中...';
 
     // 更新进度条
     if (DOM.progressBar) DOM.progressBar.style.width = '10%';
@@ -2058,7 +2674,10 @@ async function generateImage() {
             if (DOM.progressText) DOM.progressText.textContent = '95%';
             updatePaperStage('processing', 'i18n:paper.message.poll_timeout', 'running');
             updatePaperTaskId(finalTaskId);
-            showNotification(`任务仍在执行中，可稍后查询。任务ID：${finalTaskId || '未知'}`, 'warning');
+            if (finalTaskId) {
+                startBackgroundGenerationTracking(finalTaskId);
+            }
+            showNotification(`任务仍在后台执行，已自动继续查询。任务ID：${finalTaskId || '未知'}`, 'warning');
             return;
         }
 
@@ -2083,8 +2702,64 @@ async function generateImage() {
     }
 }
 
+function getGenerationPreviewContainer() {
+    return DOM.generationPreviewContainer || document.querySelector('.preview-container');
+}
+
+function buildGenerationPreviewPlaceholderHtml() {
+    return `
+        <div class="preview-placeholder">
+            <div class="preview-placeholder-icon">
+                <i class="fas fa-image"></i>
+            </div>
+            <p>生成的图像将显示在这里</p>
+            <p class="text-sm text-tertiary">填写提示词并点击"生成图像"开始</p>
+        </div>
+    `;
+}
+
+function swapGenerationPreviewContent(contentHtml, animate = true) {
+    const previewContainer = getGenerationPreviewContainer();
+    if (!previewContainer) return;
+
+    const shouldAnimate = !!animate && !prefersReducedMotion();
+    const firstChild = previewContainer.firstElementChild;
+    if (firstChild && !firstChild.classList.contains('preview-scene')) {
+        const wrapped = document.createElement('div');
+        wrapped.className = 'preview-scene is-visible';
+        firstChild.replaceWith(wrapped);
+        wrapped.appendChild(firstChild);
+    }
+
+    const previousScene = previewContainer.querySelector('.preview-scene:last-child');
+    const nextScene = document.createElement('div');
+    nextScene.className = 'preview-scene';
+    nextScene.innerHTML = contentHtml;
+
+    if (!previousScene || !shouldAnimate) {
+        previewContainer.innerHTML = '';
+        nextScene.classList.add('is-visible');
+        previewContainer.appendChild(nextScene);
+        return;
+    }
+
+    previousScene.classList.remove('is-leaving');
+    previewContainer.appendChild(nextScene);
+    requestAnimationFrame(() => {
+        previousScene.classList.remove('is-visible');
+        previousScene.classList.add('is-leaving');
+        nextScene.classList.add('is-visible');
+    });
+    setTimeout(() => {
+        if (previousScene.parentNode === previewContainer) {
+            previousScene.remove();
+        }
+    }, 340);
+}
+
 // 处理图像生成完成
 function handleImageGenerationComplete(resultData) {
+    stopBackgroundGenerationTracking(resultData && resultData.id ? String(resultData.id) : '');
     AppState.isLoading = false;
     AppState.currentGeneration = null;
     DOM.generateBtn.disabled = false;
@@ -2117,13 +2792,11 @@ function handleImageGenerationComplete(resultData) {
     }
 
     // 更新预览
-    const previewContainer = DOM.generationPreviewContainer || document.querySelector('.preview-container');
-    if (previewContainer && resultData.results && resultData.results.length > 0) {
+    if (resultData.results && resultData.results.length > 0) {
         const result = resultData.results[0];
 
         if (result.url) {
-            // 显示生成的图像
-            previewContainer.innerHTML = `
+            swapGenerationPreviewContent(`
                 <div class="preview-success">
                     <div class="preview-success-icon">
                         <i class="fas fa-check-circle"></i>
@@ -2132,10 +2805,9 @@ function handleImageGenerationComplete(resultData) {
                     <p>图像生成成功！</p>
                     <p class="text-sm text-tertiary">${result.content || '点击下载按钮保存图像'}</p>
                 </div>
-            `;
+            `, true);
         } else {
-            // 显示成功消息
-            previewContainer.innerHTML = `
+            swapGenerationPreviewContent(`
                 <div class="preview-success">
                     <div class="preview-success-icon">
                         <i class="fas fa-check-circle"></i>
@@ -2143,7 +2815,7 @@ function handleImageGenerationComplete(resultData) {
                     <p>图像生成成功！</p>
                     <p class="text-sm text-tertiary">${result.content || '生成完成'}</p>
                 </div>
-            `;
+            `, true);
         }
     }
 
@@ -2153,7 +2825,7 @@ function handleImageGenerationComplete(resultData) {
     addActivity({
         icon: 'fa-image',
         title: '图像生成完成',
-        description: `使用 ${resultData.model || 'AI'} 模型`,
+        description: `完成时间：${new Date().toLocaleString('zh-CN', { hour12: false })}`,
         time: '刚刚'
     });
 }
@@ -2178,6 +2850,7 @@ async function resetImageForm() {
     if (AppState.isLoading) {
         await cancelCurrentGeneration();
     }
+    stopBackgroundGenerationTracking();
 
     if (DOM.promptInput) DOM.promptInput.value = '';
     if (DOM.generationTextProviderSelect && DOM.generationTextProviderSelect.options.length > 0) {
@@ -2240,18 +2913,7 @@ async function resetImageForm() {
         DOM.generateBtn.innerHTML = '<i class="fas fa-magic"></i> 生成图像';
     }
 
-    const previewContainer = DOM.generationPreviewContainer || document.querySelector('.preview-container');
-    if (previewContainer) {
-        previewContainer.innerHTML = `
-            <div class="preview-placeholder">
-                <div class="preview-placeholder-icon">
-                    <i class="fas fa-image"></i>
-                </div>
-                <p>生成的图像将显示在这里</p>
-                <p class="text-sm text-tertiary">填写提示词并点击"生成图像"开始</p>
-            </div>
-        `;
-    }
+    swapGenerationPreviewContent(buildGenerationPreviewPlaceholderHtml(), true);
 }
 
 // 清空预览
@@ -2724,26 +3386,6 @@ function loadSettings() {
         DOM.retrySelect.value = settings.retry;
     }
 
-    // 加载API主机设置
-    const apiHostSelect = document.getElementById('apiHostSelect');
-    const apiHostCustomInput = document.getElementById('apiHostCustomInput');
-    if (apiHostSelect) {
-        const savedHost = localStorage.getItem('apiHost') || 'https://grsaiapi.com';
-        const hasOption = Array.from(apiHostSelect.options).some((opt) => opt.value === savedHost);
-        if (hasOption) {
-            apiHostSelect.value = savedHost;
-            if (apiHostCustomInput) apiHostCustomInput.value = '';
-        } else {
-            apiHostSelect.value = 'custom';
-            if (apiHostCustomInput) apiHostCustomInput.value = savedHost;
-        }
-
-        // 更新API服务的主机
-        if (window.APIService) {
-            window.APIService.setApiHost(savedHost);
-        }
-    }
-
     // 加载流式响应设置
     const streamToggle = document.getElementById('streamToggle');
     if (streamToggle) {
@@ -2764,6 +3406,13 @@ function loadSettings() {
     if (DOM.uiLanguageSelect) {
         DOM.uiLanguageSelect.value = AppState.language;
     }
+    if (DOM.updateAutoCheckToggle) {
+        DOM.updateAutoCheckToggle.checked = isAutoUpdateCheckEnabled();
+    }
+    if (DOM.updateCurrentVersionText) {
+        const version = String((window.AppConfig && window.AppConfig.appVersion) || '0.1.0');
+        DOM.updateCurrentVersionText.textContent = `v${version}`;
+    }
 }
 
 // 保存设置
@@ -2774,21 +3423,6 @@ function saveSettings() {
     };
 
     localStorage.setItem('appSettings', JSON.stringify(settings));
-
-    // 保存API主机设置
-    const apiHostSelect = document.getElementById('apiHostSelect');
-    const apiHostCustomInput = document.getElementById('apiHostCustomInput');
-    if (apiHostSelect) {
-        const selectedHost = apiHostSelect.value === 'custom'
-            ? String(apiHostCustomInput ? apiHostCustomInput.value : '').trim()
-            : apiHostSelect.value;
-        const finalHost = selectedHost || 'https://grsaiapi.com';
-        localStorage.setItem('apiHost', finalHost);
-
-        if (window.APIService) {
-            window.APIService.setApiHost(finalHost);
-        }
-    }
 
     // 保存流式响应设置
     const streamToggle = document.getElementById('streamToggle');
@@ -3013,6 +3647,14 @@ function addNotificationStyles() {
         .notification-content {
             flex: 1;
             font-size: var(--font-size-sm);
+            display: flex;
+            align-items: center;
+            min-height: 1.5rem;
+        }
+
+        .notification-content p {
+            margin: 0;
+            line-height: 1.45;
         }
 
         .notification-close {
