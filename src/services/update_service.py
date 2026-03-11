@@ -13,7 +13,6 @@ import requests
 from ..config import get_config
 from ..utils.errors import ServiceError
 
-
 VersionPart = Union[int, str]
 
 
