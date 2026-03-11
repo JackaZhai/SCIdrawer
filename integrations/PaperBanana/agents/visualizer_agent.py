@@ -95,7 +95,12 @@ class VisualizerAgent(BaseAgent):
             self.task_config = {
                 "task_name": "diagram",
                 "use_image_generation": True,  # Use direct image generation
-                "prompt_template": "Render an image based on the following detailed description: {desc}\n Note that do not include figure titles in the image. Diagram: ",
+                "prompt_template": (
+                    "Render an image based on the following detailed description: {desc}\n"
+                    "Note that do not include figure titles in the image, and do not render any technical "
+                    "metadata strings (such as 1K, 2K, 4K, 1024x1024, 1536x1024, 16:9, 1cm, 2px, 12pt, 5mm, 300dpi) as visible text. "
+                    "Diagram: "
+                ),
                 "max_output_tokens": 50000,
             }
 
@@ -228,7 +233,12 @@ class VisualizerAgent(BaseAgent):
         return data
 
 
-DIAGRAM_VISUALIZER_AGENT_SYSTEM_PROMPT = """You are an expert scientific diagram illustrator. Generate high-quality scientific diagrams based on user requests."""
+DIAGRAM_VISUALIZER_AGENT_SYSTEM_PROMPT = (
+    "You are an expert scientific diagram illustrator. Generate high-quality scientific diagrams based on user requests. "
+    "Do not render technical metadata text (resolution, pixel size, aspect ratio, model/version/watermark strings) "
+    "or measurement-unit labels (e.g., 1cm, 2px, 12pt, 5mm, 300dpi) "
+    "unless the user explicitly asks for them."
+)
 
 PLOT_VISUALIZER_AGENT_SYSTEM_PROMPT = """You are an expert statistical plot illustrator. Write code to generate high-quality statistical plots based on user requests."""
 

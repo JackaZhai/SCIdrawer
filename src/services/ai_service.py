@@ -10,7 +10,7 @@ import requests
 
 from ..config import get_config
 from ..models.usage_stats import UsageStats
-from ..utils.errors import ApiError
+from ..utils.errors import ApiError, ValidationError
 from .api_key_service import get_api_key_service
 from .paper_banana_service import get_paper_banana_service
 from .provider_config_service import get_provider_config_service
@@ -22,6 +22,101 @@ class AIService:
     def __init__(self):
         self.config = get_config()
         self.api_key_service = get_api_key_service()
+
+    @staticmethod
+    def _is_text_model_multimodal(provider: str, model: str) -> bool:
+        p = (provider or "").strip().lower()
+        m = (model or "").strip().lower()
+        if not m:
+            return False
+
+        # 当前产品约束：grsai / deepseek 语言模型按非多模态处理
+        if p in {"grsai", "deepseek"}:
+            return False
+
+        if p == "openrouter":
+            openrouter_multimodal_models = {
+                "google/gemini-3-flash-preview",
+                "anthropic/claude-opus-4.6",
+                "anthropic/claude-sonnet-4.6",
+                "moonshotai/kimi-k2.5",
+                "google/gemini-2.5-flash",
+                "google/gemini-2.5-flash-lite",
+                "anthropic/claude-sonnet-4.5",
+                "openai/gpt-5.4",
+                "openai/gpt-4o-mini",
+            }
+            if m in openrouter_multimodal_models:
+                return True
+            return any(
+                k in m
+                for k in (
+                    "gemini",
+                    "claude",
+                    "gpt-4o",
+                    "gpt-5",
+                    "kimi-k2.5",
+                    "vision",
+                    "vl",
+                    "multimodal",
+                )
+            )
+
+        if p == "google":
+            return "gemini" in m
+        if p == "anthropic":
+            return ("claude-3" in m) or ("claude-4" in m)
+
+        multimodal_keywords = (
+            "gpt-4o",
+            "gpt-4.1",
+            "gpt-4.5",
+            "o1",
+            "o3",
+            "gemini",
+            "claude-3",
+            "claude-4",
+            "vision",
+            "vl",
+            "gpt-image",
+            "-vt",
+            "multimodal",
+        )
+        return any(k in m for k in multimodal_keywords)
+
+    @staticmethod
+    def _requires_multimodal_text_model(
+        exp_mode: str,
+        pipeline_mode: str,
+        critic_enabled: Optional[bool],
+        eval_enabled: Optional[bool],
+        max_critic_rounds: Optional[int],
+    ) -> bool:
+        mode = (pipeline_mode or "full").strip().lower()
+        requested_exp_mode = (exp_mode or "").strip()
+        if requested_exp_mode:
+            selected_exp_mode = requested_exp_mode
+        elif mode == "image_only":
+            selected_exp_mode = "vanilla"
+        else:
+            selected_exp_mode = "dev_full"
+
+        critic_rounds = 3 if max_critic_rounds is None else max(0, int(max_critic_rounds))
+        if critic_enabled is False:
+            critic_rounds = 0
+        if selected_exp_mode not in {
+            "dev_full",
+            "demo_full",
+            "dev_planner_critic",
+            "demo_planner_critic",
+        }:
+            critic_rounds = 0
+
+        do_eval = True if eval_enabled is None else bool(eval_enabled)
+        if selected_exp_mode in {"demo_full", "demo_planner_critic", "dev_retriever"}:
+            do_eval = False
+
+        return critic_rounds > 0 or do_eval
 
     def _resolve_grsai_host(self, user_id: Optional[int]) -> str:
         """Resolve grsai host from active base URL first, then config host."""
@@ -328,6 +423,18 @@ class AIService:
             mapped = preset_map.get(preset) or preset_map["nano-banana-pro"]
             text_model = text_model or mapped[0]
             image_model = image_model or mapped[1]
+
+        if self._requires_multimodal_text_model(
+            exp_mode=exp_mode,
+            pipeline_mode=pipeline_mode,
+            critic_enabled=critic_enabled,
+            eval_enabled=eval_enabled,
+            max_critic_rounds=max_critic_rounds,
+        ) and not self._is_text_model_multimodal(text_provider, text_model):
+            raise ValidationError(
+                f"当前语言提供商/模型不支持多模态能力：provider={text_provider}, model={text_model}。"
+                "请切换到支持视觉的语言模型（如 gemini / gpt-4o / claude-3+）。"
+            )
         if not caption:
             caption = prompt[:120] if prompt else "diagram"
 

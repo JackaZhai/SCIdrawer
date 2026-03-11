@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, ipcMain } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, shell } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
@@ -106,6 +106,7 @@ function buildRuntime(port) {
       PORT: String(port),
       DATA_DIR: dataDir,
       DB_PATH: dbPath,
+      GITHUB_REPO: process.env.GITHUB_REPO || 'JackaZhai/SCIdrawer',
       PYTHONIOENCODING: 'utf-8',
       PYTHONUTF8: '1',
       PAPERBANANA_ROOT: path.join(integrationsRoot, 'PaperBanana'),
@@ -200,6 +201,20 @@ function resolveAppIcon() {
   return fs.existsSync(iconPath) ? iconPath : undefined;
 }
 
+function isInternalAppUrl(rawUrl, port) {
+  try {
+    const parsed = new URL(rawUrl);
+    const isHttp = parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    if (!isHttp) return false;
+    const hostOk = parsed.hostname === '127.0.0.1' || parsed.hostname === 'localhost';
+    if (!hostOk) return false;
+    const effectivePort = Number(parsed.port || (parsed.protocol === 'https:' ? 443 : 80));
+    return effectivePort === Number(port);
+  } catch {
+    return false;
+  }
+}
+
 function createWindow(port) {
   const iconPath = resolveAppIcon();
 
@@ -220,6 +235,24 @@ function createWindow(port) {
   if (process.platform === 'win32' && iconPath) {
     mainWindow.setIcon(iconPath);
   }
+
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (isInternalAppUrl(url, port)) {
+      return { action: 'allow' };
+    }
+    shell.openExternal(url).catch((err) => {
+      console.warn(`Failed to open external URL: ${url}`, err);
+    });
+    return { action: 'deny' };
+  });
+
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    if (isInternalAppUrl(url, port)) return;
+    event.preventDefault();
+    shell.openExternal(url).catch((err) => {
+      console.warn(`Failed to open external URL: ${url}`, err);
+    });
+  });
 
   mainWindow.loadURL(`http://127.0.0.1:${port}/`);
 }

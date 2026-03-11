@@ -5,8 +5,8 @@
 
 // API 配置
 const APIConfig = {
-    // API 主机地址（根据用户选择使用海外或国内节点）
-    host: localStorage.getItem('apiHost') || 'https://grsaiapi.com',
+    // API 主机地址（固定使用后端下发配置）
+    host: String((window.AppConfig && window.AppConfig.apiHost) || 'https://grsaiapi.com'),
 
     // 支持的模型列表
     imageModels: [
@@ -175,6 +175,10 @@ class APIService {
             throw new Error(response.msg || '获取模型状态失败');
         }
         return response.data || {};
+    }
+
+    async checkAppUpdate() {
+        return await this.makeRequest('/api/update/check', 'GET');
     }
 
     // 测试 API 密钥
