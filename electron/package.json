@@ -2,6 +2,8 @@
   "name": "scidrawer-desktop",
   "private": true,
   "version": "0.1.0",
+  "description": "SCIdrawer desktop application",
+  "author": "JackaZhai",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -53,15 +55,18 @@
             "x64"
           ]
         }
-      ],
-      "artifactName": "SCIdrawer-Setup-${version}.${ext}"
+      ]
     },
     "nsis": {
+      "artifactName": "SCIdrawer-Setup-${version}.${ext}",
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "useZip": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true
+    },
+    "portable": {
+      "artifactName": "SCIdrawer-Portable-${version}.${ext}"
     }
   }
 }
